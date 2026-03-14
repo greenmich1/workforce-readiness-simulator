@@ -2,19 +2,19 @@ const steps = [
   {
     number: "01",
     title: "Configure",
-    description: "Set your workforce size, shift patterns, classroom capacity, and training window.",
+    description: "Set workforce size, shift patterns, classroom capacity, and training window to model your enterprise scenario.",
     gradient: "from-indigo to-indigo/60",
   },
   {
     number: "02",
-    title: "Simulate",
-    description: "Generate a synthetic dataset representing the chaos of unoptimised scheduling.",
+    title: "Generate",
+    description: "The simulator creates synthetic workforce data — employees, courses, and constraints — representing real scheduling complexity.",
     gradient: "from-indigo/60 to-teal/60",
   },
   {
     number: "03",
     title: "Optimise",
-    description: "CP-SAT mathematically minimises training day fragmentation, respects every constraint, and schedules your entire workforce in under 30 seconds.",
+    description: "Google's CP-SAT solver mathematically minimises fragmentation, respects all constraints, and schedules the workforce in under 30 seconds.",
     gradient: "from-teal/60 to-teal",
   },
 ];
@@ -29,7 +29,7 @@ export function HowItWorksSection() {
             How it works
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Three simple steps to transform your training operations
+            See how constraint programming handles complex scheduling problems
           </p>
         </div>
 

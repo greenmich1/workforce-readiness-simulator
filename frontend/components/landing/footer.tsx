@@ -8,14 +8,14 @@ export function Footer() {
     >
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="text-muted-foreground text-sm font-medium">
-          Enterprise Training Scheduler
+          Enterprise Training Scheduler — Proof of Concept Simulator
         </div>
         
         <a
           href="/app"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-indigo transition-colors duration-200"
         >
-          Launch App
+          Launch Simulator
           <svg 
             className="w-4 h-4" 
             fill="none" 
