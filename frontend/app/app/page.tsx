@@ -44,9 +44,9 @@ const DS = {
   violet:  "#8B5CF6",
   violetBg:"#F5F3FF",
 
-  // Glass
-  glass:      "rgba(255,255,255,0.78)",
-  glassDim:   "rgba(255,255,255,0.60)",
+  // Glass — higher opacity for contrast over sunrise
+  glass:      "rgba(255,255,255,0.85)",
+  glassDim:   "rgba(255,255,255,0.72)",
   glassBorder:"rgba(255,255,255,0.90)",
   rim:        "rgba(228,228,231,0.70)",
 };
@@ -364,7 +364,7 @@ function drawCanvas(
   }
 
   // ── Y-axis ───────────────────────────────────────────────────────────────
-  ctx.font=`600 11px 'DM Mono',monospace`;
+  ctx.font=`600 11px 'Geist Mono',monospace`;
   ctx.fillStyle=DS.z500; ctx.textAlign="right"; ctx.textBaseline="middle";
   for(let g=0;g<groups;g++){ctx.fillText(`${String(tm.day_start_hour+g).padStart(2,"0")}:00`,YM-6,g*CH+CH/2);}
   ctx.strokeStyle="rgba(228,228,231,0.7)"; ctx.lineWidth=1;
@@ -442,7 +442,7 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
     >
       {/* Label row — fixed 2-line height so numbers always align */}
       <div style={{
-        fontFamily:"'DM Mono',monospace", fontSize:8.5, fontWeight:500,
+        fontFamily:"'Geist Mono',monospace", fontSize:8.5, fontWeight:500,
         color, letterSpacing:"0.09em", textTransform:"uppercase",
         lineHeight:1.35, minHeight:24, display:"flex", alignItems:"flex-start",
       }}>{label}</div>
@@ -451,14 +451,14 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
       <div style={{display:"flex",alignItems:"baseline",gap:0,marginTop:2}}>
         {/* Number in fixed tabular font so width doesn't wiggle */}
         <span style={{
-          fontFamily:"'DM Mono',monospace", fontSize:28, fontWeight:700,
+          fontFamily:"'Geist Mono',monospace", fontSize:28, fontWeight:700,
           color:DS.z900, letterSpacing:"-0.02em", lineHeight:1,
           fontVariantNumeric:"tabular-nums",
           animation:flash?"score-flash-text 2.8s ease forwards":"none",
         }}>{display}</span>
         {/* Unit — fixed-width span so it never shifts */}
         {unit&&<span style={{
-          fontFamily:"'DM Mono',monospace",fontSize:13,color,fontWeight:600,
+          fontFamily:"'Geist Mono',monospace",fontSize:13,color,fontWeight:600,
           marginLeft:2,lineHeight:1,alignSelf:"flex-end",marginBottom:2,
           display:"inline-block",minWidth:16,
         }}>{unit}</span>}
@@ -477,7 +477,7 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
             }}/>
           </div>
         )}
-        {sub&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:DS.z400,lineHeight:1.45,
+        {sub&&<div style={{fontFamily:"'Geist Mono',monospace",fontSize:7,color:DS.z400,lineHeight:1.45,
           display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{sub}</div>}
       </div>
 
@@ -500,8 +500,8 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
           pointerEvents:"none",
           animation:"wrs-fadein 0.15s ease",
         }}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:color,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>{label}</div>
-          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,color:"rgba(255,255,255,0.80)",lineHeight:1.65}}>{tooltip}</div>
+          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:color,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>{label}</div>
+          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:"rgba(255,255,255,0.80)",lineHeight:1.65}}>{tooltip}</div>
         </div>
       )}
     </div>
@@ -555,7 +555,7 @@ function SideSlider({label,field,min,max,step=1,value,unit="",onChange}:{
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
         <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:DS.z600,fontWeight:500}}>{label}</span>
         <span style={{
-          fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.i600,fontWeight:600,
+          fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.i600,fontWeight:600,
           background:DS.i50,border:`1px solid ${DS.i100}`,padding:"1px 8px",borderRadius:20,
         }}>{value}{unit}</span>
       </div>
@@ -568,8 +568,8 @@ function SideSlider({label,field,min,max,step=1,value,unit="",onChange}:{
           style={{position:"relative",zIndex:1,width:"100%",WebkitAppearance:"none",appearance:"none",background:"transparent",cursor:"pointer",height:20}}/>
       </div>
       <div style={{display:"flex",justifyContent:"space-between",marginTop:1}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z300}}>{min}</span>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z300}}>{max}</span>
+        <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z300}}>{min}</span>
+        <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z300}}>{max}</span>
       </div>
     </div>
   );
@@ -584,7 +584,7 @@ function SideDateInput({label,value,min,max,onChange}:{label:string;value:string
           width:"100%",padding:"7px 10px",
           background:"rgba(255,255,255,0.9)",
           border:`1px solid ${DS.z200}`,borderRadius:9,
-          fontFamily:"'DM Mono',monospace",fontSize:11,color:DS.z800,
+          fontFamily:"'Geist Mono',monospace",fontSize:11,color:DS.z800,
           outline:"none",transition:"border-color 0.15s, box-shadow 0.15s",
         }}/>
     </div>
@@ -600,7 +600,7 @@ function SideHourSelect({label,value,options,onChange}:{label:string;value:numbe
           width:"100%",padding:"7px 8px",
           background:"rgba(255,255,255,0.9)",
           border:`1px solid ${DS.z200}`,borderRadius:9,
-          fontFamily:"'DM Mono',monospace",fontSize:11,color:DS.z800,
+          fontFamily:"'Geist Mono',monospace",fontSize:11,color:DS.z800,
           outline:"none",cursor:"pointer",
         }}>
         {options.map(h=><option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>)}
@@ -626,7 +626,7 @@ function ICard({children,accent=DS.i500,style={}}:{children:React.ReactNode;acce
 
 function ILabel({children,color=DS.z400}:{children:React.ReactNode;color?:string}){
   return(
-    <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:600,letterSpacing:"0.14em",color,textTransform:"uppercase",marginBottom:8}}>
+    <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,fontWeight:600,letterSpacing:"0.14em",color,textTransform:"uppercase",marginBottom:8}}>
       {children}
     </div>
   );
@@ -676,14 +676,14 @@ function CellInspector({cell,data,tm,nodeMap,onClose,prof_max_classroom,phase,ro
             {showRoomBadge&&(
               <div style={{display:"flex",alignItems:"center",gap:4,padding:"2px 8px",borderRadius:6,background:roomBg,border:`1px solid ${roomColor}33`,flexShrink:0}}>
                 <div style={{width:6,height:6,borderRadius:"50%",background:roomColor}}/>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:roomColor,fontWeight:700}}>
+                <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:roomColor,fontWeight:700}}>
                   {room===0?"Room 1 · Trainer 1":"Room 2 · Trainer 2"}
                 </span>
               </div>
             )}
           </div>
-          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:14,color:DS.z900,fontWeight:700,lineHeight:1.2}}>{iso?fmtLong(iso):`Day ${cell.day+1}`}</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.z600,marginTop:3}}>{String(hr).padStart(2,"0")}:00 – {String(hr+1).padStart(2,"0")}:00</div>
+          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:14,color:DS.z900,fontWeight:700,lineHeight:1.2}}>{iso?fmtLong(iso):`Day ${cell.day+1}`}</div>
+          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.z600,marginTop:3}}>{String(hr).padStart(2,"0")}:00 – {String(hr+1).padStart(2,"0")}:00</div>
         </div>
         <button onClick={onClose} style={{width:26,height:26,borderRadius:8,background:DS.z100,border:`1px solid ${DS.z200}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:DS.z500,fontSize:15,fontWeight:700,flexShrink:0}}>×</button>
       </div>
@@ -693,11 +693,11 @@ function CellInspector({cell,data,tm,nodeMap,onClose,prof_max_classroom,phase,ro
         <div style={{padding:"8px 10px",background:"rgba(255,246,220,0.85)",border:`1px solid ${DS.amber}55`,borderRadius:9,marginBottom:10}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
             <span style={{fontSize:12}}>⚠</span>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#92400E",fontWeight:700}}>
+            <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:"#92400E",fontWeight:700}}>
               {courses.length} courses in block — unoptimised placement
             </span>
           </div>
-          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:9,color:"#78350F",lineHeight:1.6}}>
+          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:"#78350F",lineHeight:1.6}}>
             This is the <strong>planned</strong> (unoptimised) view. Overlapping courses are expected here. Run <em>Optimise Schedule</em> to enforce single-course-per-room via CP-SAT.
           </div>
         </div>
@@ -706,10 +706,10 @@ function CellInspector({cell,data,tm,nodeMap,onClose,prof_max_classroom,phase,ro
       {/* Oversized classroom warning — planned only */}
       {data.employeeIds.length>prof_max_classroom&&!isOptimized&&(
         <div style={{padding:"7px 10px",background:"rgba(238,242,255,0.85)",border:`1px solid ${DS.i400}44`,borderRadius:9,marginBottom:10}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.i700,fontWeight:700,marginBottom:3}}>
+          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.i700,fontWeight:700,marginBottom:3}}>
             ℹ {data.employeeIds.length} trainees — unoptimised
           </div>
-          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:9,color:DS.i600,lineHeight:1.6}}>
+          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.i600,lineHeight:1.6}}>
             Planned view shows all enrolled employees together. After optimisation, CP-SAT splits sessions to respect the {prof_max_classroom}-seat classroom limit.
           </div>
         </div>
@@ -734,28 +734,28 @@ function CellInspector({cell,data,tm,nodeMap,onClose,prof_max_classroom,phase,ro
               <div style={{padding:"8px 10px 6px",background:isLong?"rgba(99,102,241,0.08)":"rgba(248,248,252,0.8)"}}>
                 {/* Full course name — scrollable horizontally if needed */}
                 <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:5,paddingBottom:2}}>
-                  <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z900,fontWeight:700,lineHeight:1.4,whiteSpace:"nowrap",display:"block"}}>{ci.label}</span>
+                  <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z900,fontWeight:700,lineHeight:1.4,whiteSpace:"nowrap",display:"block"}}>{ci.label}</span>
                 </div>
                 {/* Pills row */}
                 <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,padding:"2px 8px",borderRadius:6,background:DS.t50,border:`1px solid ${DS.t500}33`,color:DS.t700,fontWeight:700,whiteSpace:"nowrap"}}>
+                  <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,padding:"2px 8px",borderRadius:6,background:DS.t50,border:`1px solid ${DS.t500}33`,color:DS.t700,fontWeight:700,whiteSpace:"nowrap"}}>
                     {durationH<1?`${Math.round(durationH*60)}min`:`${durationH}h`}
                   </span>
                   {isLong&&(
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,padding:"2px 8px",borderRadius:6,background:DS.i50,border:`1px solid ${DS.i400}44`,color:DS.i700,fontWeight:700,whiteSpace:"nowrap"}}>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,padding:"2px 8px",borderRadius:6,background:DS.i50,border:`1px solid ${DS.i400}44`,color:DS.i700,fontWeight:700,whiteSpace:"nowrap"}}>
                       ↕ {spans} blocks
                     </span>
                   )}
                   {!startsHere&&(
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,padding:"2px 8px",borderRadius:6,background:DS.amberBg,border:`1px solid ${DS.amber}44`,color:"#92400E",fontWeight:700,whiteSpace:"nowrap"}}>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,padding:"2px 8px",borderRadius:6,background:DS.amberBg,border:`1px solid ${DS.amber}44`,color:"#92400E",fontWeight:700,whiteSpace:"nowrap"}}>
                       cont'd
                     </span>
                   )}
                 </div>
               </div>
               <div style={{padding:"5px 10px 7px",background:"rgba(245,245,250,0.6)",borderTop:"1px solid rgba(200,200,215,0.3)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z600,fontWeight:500}}>{ci.empCount} trainee{ci.empCount!==1?"s":""}</span>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:DS.z400}}>{cid}</span>
+                <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z600,fontWeight:500}}>{ci.empCount} trainee{ci.empCount!==1?"s":""}</span>
+                <span style={{fontFamily:"'Geist Mono',monospace",fontSize:7,color:DS.z400}}>{cid}</span>
               </div>
             </div>
           );
@@ -771,19 +771,19 @@ function CellInspector({cell,data,tm,nodeMap,onClose,prof_max_classroom,phase,ro
           return(
             <div key={eid} style={{padding:"5px 10px",background:"rgba(255,253,249,0.50)",border:`1px solid rgba(255,255,255,0.50)`,borderRadius:8,display:"flex",alignItems:"center",gap:8}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z800,fontWeight:600,marginBottom:1}}>{nodeMap[eid]?.label??eid}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.t600,overflowX:"auto",whiteSpace:"nowrap",WebkitOverflowScrolling:"touch",paddingBottom:1}}>{ci?.label}</div>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z800,fontWeight:600,marginBottom:1}}>{nodeMap[eid]?.label??eid}</div>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.t600,overflowX:"auto",whiteSpace:"nowrap",WebkitOverflowScrolling:"touch",paddingBottom:1}}>{ci?.label}</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2,flexShrink:0}}>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.t700,fontWeight:700}}>
+                <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.t700,fontWeight:700}}>
                   {dH<1?`${dH*60|0}min`:`${dH}h`}
                 </span>
-                {isLong&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:DS.i500,fontWeight:600}}>↕multi</span>}
+                {isLong&&<span style={{fontFamily:"'Geist Mono',monospace",fontSize:7,color:DS.i500,fontWeight:600}}>↕multi</span>}
               </div>
             </div>
           );
         })}
-        {data.employeeIds.length>18&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500}}>+{data.employeeIds.length-18} more</div>}
+        {data.employeeIds.length>18&&<div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500}}>+{data.employeeIds.length-18} more</div>}
       </div>
     </ICard>
   );
@@ -817,24 +817,24 @@ function OverflowBucket({count,proj,snap}:{count:number;proj:Projection;snap:Sna
         <div style={{display:"flex",alignItems:"center",gap:7}}>
           <div style={{width:8,height:8,borderRadius:"50%",background:DS.red,boxShadow:`0 0 8px ${DS.red}66`,flexShrink:0}}/>
           <div style={{textAlign:"left"}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:DS.red,letterSpacing:"0.10em",textTransform:"uppercase"}}>Overflow Bucket</div>
-            <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:"#9F1239",marginTop:1}}>
+            <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,fontWeight:700,color:DS.red,letterSpacing:"0.10em",textTransform:"uppercase"}}>Overflow Bucket</div>
+            <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:"#9F1239",marginTop:1}}>
               <strong>{count}</strong> placements couldn't fit in the window
             </div>
           </div>
         </div>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:DS.red,fontWeight:700}}>{open?"▲":"▼"}</span>
+        <span style={{fontFamily:"'Geist Mono',monospace",fontSize:11,color:DS.red,fontWeight:700}}>{open?"▲":"▼"}</span>
       </button>
 
       {/* Explanation */}
       {open&&(
         <div style={{padding:"0 12px 10px"}}>
-          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:9,color:"#7F1D1D",lineHeight:1.65,marginBottom:10,padding:"8px 10px",background:"rgba(255,220,220,0.45)",borderRadius:8,border:`1px solid ${DS.red}22`}}>
+          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:"#7F1D1D",lineHeight:1.65,marginBottom:10,padding:"8px 10px",background:"rgba(255,220,220,0.45)",borderRadius:8,border:`1px solid ${DS.red}22`}}>
             These employees have training that couldn't be placed within the {tm.training_window_days}-day window.
             This typically happens when the solver packs placements greedily and runs out of available slots.
             Expanding the window, enabling weekends, or switching to the CP-SAT solver (which spreads load more evenly) will reduce overflow.
           </div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.red,fontWeight:600,letterSpacing:"0.08em",marginBottom:8}}>
+          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.red,fontWeight:600,letterSpacing:"0.08em",marginBottom:8}}>
             AFFECTED EMPLOYEES — {empEntries.length} (alphabetical)
           </div>
           {/* Alphabetical list with hover tooltip showing unscheduled courses */}
@@ -852,8 +852,8 @@ function OverflowBucket({count,proj,snap}:{count:number;proj:Projection;snap:Sna
                   display:"flex",alignItems:"center",justifyContent:"space-between",
                   transition:"background 0.12s,border 0.12s",
                 }}>
-                  <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z800,fontWeight:600}}>{label}</span>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.red,fontWeight:700,flexShrink:0,marginLeft:6}}>
+                  <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z800,fontWeight:600}}>{label}</span>
+                  <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.red,fontWeight:700,flexShrink:0,marginLeft:6}}>
                     {courses.length} course{courses.length!==1?"s":""} · {courses.reduce((s,c)=>s+c.hours,0).toFixed(1)}h
                   </span>
                 </div>
@@ -866,13 +866,13 @@ function OverflowBucket({count,proj,snap}:{count:number;proj:Projection;snap:Sna
                     boxShadow:"0 4px 18px rgba(239,68,68,0.12)",
                     animation:"wrs-fadein 0.12s ease",
                   }}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.red,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:7}}>
+                    <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.red,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:7}}>
                       {label} — unscheduled courses
                     </div>
                     {courses.map((c,i)=>(
                       <div key={i} style={{padding:"5px 0",borderBottom:i<courses.length-1?`1px solid ${DS.red}18`:"none",display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
-                        <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z800,lineHeight:1.4,flex:1}}>{c.label}</span>
-                        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.red,fontWeight:700,flexShrink:0}}>{c.hours}h</span>
+                        <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z800,lineHeight:1.4,flex:1}}>{c.label}</span>
+                        <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.red,fontWeight:700,flexShrink:0}}>{c.hours}h</span>
                       </div>
                     ))}
                   </div>
@@ -881,7 +881,7 @@ function OverflowBucket({count,proj,snap}:{count:number;proj:Projection;snap:Sna
                 {hovEmp===eid&&clickEmp!==eid&&(
                   <div style={{
                     position:"absolute",right:4,bottom:-18,zIndex:600,
-                    fontFamily:"'DM Mono',monospace",fontSize:7,color:DS.red,
+                    fontFamily:"'Geist Mono',monospace",fontSize:7,color:DS.red,
                     opacity:0.6,pointerEvents:"none",
                   }}>click to expand</div>
                 )}
@@ -923,7 +923,7 @@ function EmployeeInspector({empId,proj,snap,onClose}:{empId:string;proj:Projecti
         if(!def&&!node?.shift_name) return(
           <div style={{marginBottom:12,padding:"9px 11px",background:"rgba(244,244,245,0.7)",border:`1px solid rgba(220,220,228,0.5)`,borderRadius:10}}>
             <ILabel>Shift Pattern</ILabel>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.z500}}>Not assigned — regenerate with shift patterns enabled</div>
+            <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.z500}}>Not assigned — regenerate with shift patterns enabled</div>
           </div>
         );
         const shiftColor = def?.id==="core4on4off"?DS.violet:def?.id==="panama223"?DS.t600:DS.amber;
@@ -933,12 +933,12 @@ function EmployeeInspector({empId,proj,snap,onClose}:{empId:string;proj:Projecti
             <ILabel color={shiftColor}>Shift Pattern</ILabel>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
               <div>
-                <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:12,color:DS.z900,fontWeight:700,lineHeight:1.2}}>{def?.name??node?.shift_name}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:shiftColor,marginTop:2}}>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:12,color:DS.z900,fontWeight:700,lineHeight:1.2}}>{def?.name??node?.shift_name}</div>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:shiftColor,marginTop:2}}>
                   {def?.shortName??""} · {def?.hoursPerShift??8}h/shift · {def?.cycleLength??7}d cycle
                 </div>
               </div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:shiftColor,background:`${shiftColor}18`,border:`1px solid ${shiftColor}30`,borderRadius:6,padding:"2px 7px",flexShrink:0}}>
+              <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:shiftColor,background:`${shiftColor}18`,border:`1px solid ${shiftColor}30`,borderRadius:6,padding:"2px 7px",flexShrink:0}}>
                 {def?.teams??"—"}
               </div>
             </div>
@@ -951,14 +951,14 @@ function EmployeeInspector({empId,proj,snap,onClose}:{empId:string;proj:Projecti
                 ["Hours/week", def?.id==="standard52"?"42.5h":def?.id==="panama223"?"42h":"42h avg"],
               ].map(([k,v])=>(
                 <div key={k}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:shiftColor,opacity:0.7,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:1}}>{k}</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.z900,fontWeight:700}}>{v}</div>
+                  <div style={{fontFamily:"'Geist Mono',monospace",fontSize:7,color:shiftColor,opacity:0.7,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:1}}>{k}</div>
+                  <div style={{fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.z900,fontWeight:700}}>{v}</div>
                 </div>
               ))}
             </div>
 
             {/* Category tag */}
-            <div style={{marginTop:8,fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:9,color:shiftColor,opacity:0.85,lineHeight:1.5}}>
+            <div style={{marginTop:8,fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:shiftColor,opacity:0.85,lineHeight:1.5}}>
               {def?.category}
             </div>
           </div>
@@ -978,7 +978,7 @@ function EmployeeInspector({empId,proj,snap,onClose}:{empId:string;proj:Projecti
             <div style={{overflowX:"auto",flex:1,WebkitOverflowScrolling:"touch",marginRight:6}}>
               <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,whiteSpace:"nowrap",fontWeight:500,display:"block"}}>{label}</span>
             </div>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.t600,fontWeight:600,flexShrink:0}}>{hours.toFixed(1)}h</span>
+            <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.t600,fontWeight:600,flexShrink:0}}>{hours.toFixed(1)}h</span>
           </div>
         ))}
       </div>
@@ -992,14 +992,14 @@ function EmployeeInspector({empId,proj,snap,onClose}:{empId:string;proj:Projecti
             <div key={d} style={{padding:"7px 10px",background:"rgba(255,253,249,0.55)",border:`1px solid rgba(255,255,255,0.55)`,borderRadius:9}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                 <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.i600,fontWeight:700}}>{iso?fmtShort(iso):`Day ${d+1}`}</span>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.z400}}>{dayH.toFixed(1)}h</span>
+                <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.z400}}>{dayH.toFixed(1)}h</span>
               </div>
               <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
                 {dayP.map(p=>{
                   const sH=tm.day_start_hour+p.start_slot/4, eH=sH+p.duration_slots/4;
                   const f=(n:number)=>`${String(Math.floor(n)).padStart(2,"0")}:${n%1>=0.5?"30":"00"}`;
                   return(
-                    <span key={p.id} style={{fontFamily:"'DM Mono',monospace",fontSize:8,background:`${DS.t500}12`,color:DS.t700,padding:"2px 7px",borderRadius:6,border:`1px solid ${DS.t500}1A`,whiteSpace:"nowrap"}}>{f(sH)}–{f(eH)}</span>
+                    <span key={p.id} style={{fontFamily:"'Geist Mono',monospace",fontSize:8,background:`${DS.t500}12`,color:DS.t700,padding:"2px 7px",borderRadius:6,border:`1px solid ${DS.t500}1A`,whiteSpace:"nowrap"}}>{f(sH)}–{f(eH)}</span>
                   );
                 })}
               </div>
@@ -1124,7 +1124,7 @@ export default function WorkforceSim(){
       *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
       html,body{height:100%;overflow:hidden}
       body{
-        font-family:'DM Sans',system-ui,sans-serif;
+        font-family:'Geist',system-ui,sans-serif;
         background-color:#E8DDD0;
         background-image:
           linear-gradient(to bottom,rgba(255,255,255,0.48) 0%,rgba(240,245,255,0.40) 50%,rgba(235,250,245,0.42) 100%),
@@ -1178,7 +1178,7 @@ export default function WorkforceSim(){
       ::-webkit-scrollbar-thumb{background:${DS.z200};border-radius:3px}
       ::-webkit-scrollbar-track{background:transparent}
     `;
-    // Replace 'Geist' references to 'DM Sans' since we load DM Sans
+    // Replace 'Geist' references to 'Geist' since we load DM Sans
     document.head.appendChild(style);
     return()=>{document.head.removeChild(fonts);document.head.removeChild(style);};
   },[]);
@@ -1378,9 +1378,9 @@ export default function WorkforceSim(){
       {/* Tooltip */}
       {tip&&(
         <div style={{position:"fixed",left:tip.x+14,top:tip.y-10,zIndex:400,pointerEvents:"none",background:DS.z900,borderRadius:12,padding:"9px 13px",boxShadow:"0 8px 28px rgba(0,0,0,0.18)",animation:"wrs-spring 0.15s cubic-bezier(0.34,1.56,0.64,1)",minWidth:175}}>
-          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:12,color:"white",fontWeight:700,marginBottom:3,letterSpacing:"-0.01em"}}>{tip.name}</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.t400,marginBottom:2}}>{tip.courseName}</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(255,255,255,0.35)"}}>{tip.durationH.toFixed(2)}h — click to focus</div>
+          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:12,color:"white",fontWeight:700,marginBottom:3,letterSpacing:"-0.01em"}}>{tip.name}</div>
+          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.t400,marginBottom:2}}>{tip.courseName}</div>
+          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:"rgba(255,255,255,0.35)"}}>{tip.durationH.toFixed(2)}h — click to focus</div>
         </div>
       )}
 
@@ -1418,12 +1418,12 @@ export default function WorkforceSim(){
               </div>
             </div>
             <div style={{maxWidth:290}}>
-              <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:15,fontWeight:800,color:DS.z900,letterSpacing:"-0.03em",lineHeight:1,marginBottom:3}}>
+              <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:15,fontWeight:800,color:DS.z900,letterSpacing:"-0.03em",lineHeight:1,marginBottom:3}}>
                 Enterprise <span style={{color:DS.i500}}>Training</span> <span style={{color:DS.t600}}>Scheduler</span>
               </div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7.5,color:DS.z500,letterSpacing:"0.05em",fontWeight:500,marginBottom:5,textTransform:"uppercase"}}>Mathematical Solver · CP-SAT Optimisation</div>
-              <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z600,lineHeight:1.55,maxWidth:285}}>
-                Automatically optimises enterprise training schedules across complex shift patterns, site constraints and availability windows — turning weeks of manual planning into seconds.{" "}
+<div style={{fontFamily:"'Geist Mono',monospace",fontSize:7.5,color:DS.z500,letterSpacing:"0.05em",fontWeight:500,marginBottom:5,textTransform:"uppercase"}}>Proof of Concept Simulator · CP-SAT Optimisation</div>
+  <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z600,lineHeight:1.55,maxWidth:285}}>
+  Experience how Google&apos;s CP-SAT solver transforms complex workforce scheduling — from weeks of manual planning to seconds of computation using synthetic data.{" "}
               </div>
             </div>
             {/* CP-SAT hover tooltip */}
@@ -1437,14 +1437,14 @@ export default function WorkforceSim(){
               opacity:0,transition:"opacity 0.18s ease",
               pointerEvents:"none",
             }}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#A5B4FC",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>What is CP-SAT Optimisation?</div>
-              <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,color:"rgba(255,255,255,0.82)",lineHeight:1.7,marginBottom:10}}>
+              <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:"#A5B4FC",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>What is CP-SAT Optimisation?</div>
+              <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:"rgba(255,255,255,0.82)",lineHeight:1.7,marginBottom:10}}>
                 CP-SAT stands for <strong style={{color:"white"}}>Constraint Programming — Satisfiability</strong>. It is Google's industrial-grade mathematical solver, used by logistics companies, airlines and hospitals to solve scheduling problems that would take humans weeks to work through manually.
               </div>
-              <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,color:"rgba(255,255,255,0.82)",lineHeight:1.7,marginBottom:10}}>
+              <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:"rgba(255,255,255,0.82)",lineHeight:1.7,marginBottom:10}}>
                 Instead of trying every possible combination (which would take longer than the age of the universe for large workforces), CP-SAT intelligently prunes the solution space using constraints — things like <em>"no employee can attend two courses at once"</em> or <em>"max 20 people per classroom"</em> — and finds the best possible schedule in seconds.
               </div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.t400,fontWeight:600}}>Result: what a team of planners would take weeks to do manually, solved optimally in under 30 seconds.</div>
+              <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.t400,fontWeight:600}}>Result: what a team of planners would take weeks to do manually, solved optimally in under 30 seconds.</div>
             </div>
           </div>
 
@@ -1507,7 +1507,7 @@ export default function WorkforceSim(){
             <div style={{padding:"10px 12px 8px",borderBottom:`1px solid rgba(230,225,215,0.5)`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <div style={{padding:"3px 11px",borderRadius:7,background:DS.z900,flexShrink:0}}>
-                  <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,fontWeight:700,color:"white",letterSpacing:"-0.01em"}}>Create Synthetic Data</span>
+                  <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,fontWeight:700,color:"white",letterSpacing:"-0.01em"}}>Create Synthetic Data</span>
                 </div>
               </div>
               <button onClick={()=>setSidecar(false)}
@@ -1521,14 +1521,14 @@ export default function WorkforceSim(){
                   onChange={v=>setProf(p=>({...p,start_date:v,end_date:addDays(v,Math.max(14,Math.min(90,daysBetween(v,p.end_date))))}))}/>
                 <SideDateInput label="End Date"   value={prof.end_date}   min={minEnd} max={maxEnd} onChange={v=>setProf(p=>({...p,end_date:v}))}/>
                 <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:`${DS.i500}09`,border:`1px solid ${DS.i200}`,borderRadius:9,marginBottom:10}}>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.z500}}>Window</span>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.i600,fontWeight:600}}>{windowDays} days</span>
+                  <span style={{fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.z500}}>Window</span>
+                  <span style={{fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.i600,fontWeight:600}}>{windowDays} days</span>
                 </div>
                 {/* Sat / Sun toggles */}
                 <div style={{display:"flex",gap:6,marginBottom:12}}>
                   {([["Sat",prof.allow_saturday,"allow_saturday"],["Sun",prof.allow_sunday,"allow_sunday"]] as [string,boolean,string][]).map(([label,on,field])=>(
                     <button key={field} onClick={()=>setProf(p=>({...p,[field]:!on}))}
-                      style={{flex:1,padding:"6px 0",borderRadius:8,border:`1.5px solid ${on?DS.i400:DS.z300}`,background:on?DS.i50:"rgba(255,255,255,0.5)",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,color:on?DS.i600:DS.z500,transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                      style={{flex:1,padding:"6px 0",borderRadius:8,border:`1.5px solid ${on?DS.i400:DS.z300}`,background:on?DS.i50:"rgba(255,255,255,0.5)",cursor:"pointer",fontFamily:"'Geist Mono',monospace",fontSize:10,fontWeight:700,color:on?DS.i600:DS.z500,transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                       <span style={{width:8,height:8,borderRadius:"50%",background:on?DS.i500:DS.z300,display:"inline-block",boxShadow:on?`0 0 6px ${DS.i500}88`:"none",flexShrink:0}}/>
                       {label} {on?"ON":"OFF"}
                     </button>
@@ -1560,23 +1560,23 @@ export default function WorkforceSim(){
                       <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:def.always?"default":"pointer"}} onClick={()=>!def.always&&setShiftEnabled(p=>({...p,[sid]:!on}))}>
                         <div style={{width:10,height:10,borderRadius:"50%",background:on?DS.i500:DS.z300,boxShadow:on?`0 0 8px ${DS.i500}88`:"none",flexShrink:0,transition:"all 0.2s"}}/>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,fontWeight:700,color:on?DS.z900:DS.z600,lineHeight:1.2}}>{def.name}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:on?DS.i600:DS.z400,marginTop:1}}>{def.shortName} · {def.hoursPerShift}h shifts</div>
+                          <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,fontWeight:700,color:on?DS.z900:DS.z600,lineHeight:1.2}}>{def.name}</div>
+                          <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:on?DS.i600:DS.z400,marginTop:1}}>{def.shortName} · {def.hoursPerShift}h shifts</div>
                         </div>
-                        {def.always&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:DS.i500,background:DS.i50,border:`1px solid ${DS.i200}`,borderRadius:4,padding:"1px 5px",flexShrink:0}}>MAIN</span>}
+                        {def.always&&<span style={{fontFamily:"'Geist Mono',monospace",fontSize:7,color:DS.i500,background:DS.i50,border:`1px solid ${DS.i200}`,borderRadius:4,padding:"1px 5px",flexShrink:0}}>MAIN</span>}
                         {!def.always&&<div style={{width:28,height:16,borderRadius:8,background:on?DS.i500:DS.z300,position:"relative",flexShrink:0,transition:"background 0.2s"}}>
                           <div style={{position:"absolute",top:2,left:on?14:2,width:12,height:12,borderRadius:"50%",background:"white",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
                         </div>}
                       </div>
                       {/* Details when enabled */}
                       {on&&<div style={{padding:"0 10px 10px"}}>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500,lineHeight:1.7,marginBottom:6}}>{def.category}<br/>{def.daysLabel} · {def.cycleLength}d cycle · {def.teams}</div>
+                        <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,lineHeight:1.7,marginBottom:6}}>{def.category}<br/>{def.daysLabel} · {def.cycleLength}d cycle · {def.teams}</div>
                         {/* Employee % split slider — only show for optional patterns with at least one other enabled */}
                         {!def.always&&enabledCount>1&&(
                           <div>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500}}>Employee share</span>
-                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.i600,fontWeight:600}}>{pct}%</span>
+                              <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500}}>Employee share</span>
+                              <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,fontWeight:600}}>{pct}%</span>
                             </div>
                             <input type="range" min={5} max={80} step={5} value={pct}
                               onChange={e=>setShiftSplit(p=>({...p,[sid]:parseInt(e.target.value)}))}
@@ -1588,7 +1588,7 @@ export default function WorkforceSim(){
                   );
                 })}
                 <div style={{padding:"7px 10px",background:"rgba(238,242,255,0.45)",border:`1px solid ${DS.i100}`,borderRadius:8,marginTop:2}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500,lineHeight:1.7}}>
+                  <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,lineHeight:1.7}}>
                     Active patterns: <strong style={{color:DS.i600}}>{Object.values(shiftEnabled).filter(Boolean).length}</strong><br/>
                     Employees assigned proportionally by share %
                   </div>
@@ -1602,27 +1602,27 @@ export default function WorkforceSim(){
 
                 {/* Trainers / Rooms toggle */}
                 <div style={{marginBottom:10}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Training Rooms & Trainers</div>
+                  <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Training Rooms & Trainers</div>
                   <div style={{display:"flex",gap:4}}>
                     {([1,2] as const).map(n=>(
                       <button key={n} onClick={()=>setNumTrainers(n)}
                         style={{
                           flex:1,padding:"7px 4px",borderRadius:8,cursor:"pointer",
-                          fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,fontWeight:700,
+                          fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,fontWeight:700,
                           border:`1.5px solid ${numTrainers===n?DS.i400:DS.z200}`,
                           background:numTrainers===n?DS.i50:"rgba(255,255,255,0.4)",
                           color:numTrainers===n?DS.i600:DS.z500,
                           transition:"all 0.15s",
                         }}>
                         {n === 1 ? "1 Room" : "2 Rooms"}
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:numTrainers===n?DS.i500:DS.z400,marginTop:2}}>
+                        <div style={{fontFamily:"'Geist Mono',monospace",fontSize:7,color:numTrainers===n?DS.i500:DS.z400,marginTop:2}}>
                           {n === 1 ? "1 Trainer" : "2 Trainers"}
                         </div>
                       </button>
                     ))}
                   </div>
                   {numTrainers===2&&(
-                    <div style={{marginTop:5,fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.t600,lineHeight:1.5}}>
+                    <div style={{marginTop:5,fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.t600,lineHeight:1.5}}>
                       Canvas splits each day into teal (Room 1) + violet (Room 2) lanes after optimising.
                     </div>
                   )}
@@ -1630,12 +1630,12 @@ export default function WorkforceSim(){
 
                 <div style={{padding:"6px 10px",background:"rgba(255,253,249,0.45)",border:`1px solid rgba(255,255,255,0.45)`,borderRadius:8,marginBottom:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500}}>Daily hours</span>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.t600,fontWeight:600}}>{prof.day_end_hour-prof.day_start_hour}h</span>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500}}>Daily hours</span>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.t600,fontWeight:600}}>{prof.day_end_hour-prof.day_start_hour}h</span>
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between"}}>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500}}>Solver</span>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.i500,fontWeight:600}}>OR-Tools CP-SAT</span>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500}}>Solver</span>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i500,fontWeight:600}}>OR-Tools CP-SAT</span>
                   </div>
                 </div>
               </Accordion>
@@ -1645,14 +1645,14 @@ export default function WorkforceSim(){
                 <Accordion title="Active Model" icon="⚡" open={false}>
                   {[["Hours",`${tm.day_start_hour}:00 – ${tm.day_end_hour}:00`],["Window",`${tm.training_window_days} days`],["Slots/day",tm.slots_per_day],["Phase",snap?.phase??"—"]].map(([k,v])=>(
                     <div key={k as string} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${DS.z100}`}}>
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.z400}}>{k}</span>
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.z700,fontWeight:600}}>{v}</span>
+                      <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.z400}}>{k}</span>
+                      <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.z700,fontWeight:600}}>{v}</span>
                     </div>
                   ))}
                   {sim&&(
                     <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0"}}>
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.z400}}>Run ID</span>
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:DS.i600,fontWeight:600,letterSpacing:"0.06em"}}>{sim.simulation_id.slice(0,8).toUpperCase()}</span>
+                      <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.z400}}>Run ID</span>
+                      <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.i600,fontWeight:600,letterSpacing:"0.06em"}}>{sim.simulation_id.slice(0,8).toUpperCase()}</span>
                     </div>
                   )}
                 </Accordion>
@@ -1681,10 +1681,10 @@ export default function WorkforceSim(){
               background:"rgba(245,158,11,0.12)",border:`1px solid ${DS.amber}44`,
               borderRadius:8,marginBottom:4,
               display:"flex",alignItems:"center",justifyContent:"space-between",
-              fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:"#92400E",
+              fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:"#92400E",
             }}>
               <span>⚠ Room setting changed — click <strong>Simulate Data</strong> to regenerate with {numTrainers} room{numTrainers===1?"":"s"}.</span>
-              <button onClick={()=>setNumTrainers(simNumTrainers)} style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.amber,background:"none",border:"none",cursor:"pointer",fontWeight:700}}>revert</button>
+              <button onClick={()=>setNumTrainers(simNumTrainers)} style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.amber,background:"none",border:"none",cursor:"pointer",fontWeight:700}}>revert</button>
             </div>
           )}
 
@@ -1700,12 +1700,12 @@ export default function WorkforceSim(){
           }}>
             {/* Row 1: zoom controls — rightmost, full width */}
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",padding:"5px 10px 4px",gap:4}}>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z500,fontWeight:600,letterSpacing:"0.08em",marginRight:4}}>ZOOM</span>
+              <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,fontWeight:600,letterSpacing:"0.08em",marginRight:4}}>ZOOM</span>
               {([0.5,1,1.5,2,3] as const).map(z=>(
                 <button key={z} onClick={()=>setZoom(z)}
                   style={{
                     minWidth:28,height:22,padding:"0 5px",borderRadius:6,cursor:"pointer",
-                    fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,
+                    fontFamily:"'Geist Mono',monospace",fontSize:9,fontWeight:700,
                     background:zoom===z?DS.i500:"rgba(255,255,255,0.45)",
                     border:`1px solid ${zoom===z?DS.i500:"rgba(200,200,210,0.6)"}`,
                     color:zoom===z?"white":DS.z600,
@@ -1719,11 +1719,11 @@ export default function WorkforceSim(){
                   <div style={{width:1,height:18,background:DS.z150,marginLeft:6}}/>
                   <div style={{display:"flex",alignItems:"center",gap:4}}>
                     <div style={{width:7,height:7,borderRadius:2,background:DS.t500,flexShrink:0}}/>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z600,fontWeight:600,whiteSpace:"nowrap"}}>Room 1</span>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z600,fontWeight:600,whiteSpace:"nowrap"}}>Room 1</span>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:4}}>
                     <div style={{width:7,height:7,borderRadius:2,background:"#7C3AED",flexShrink:0}}/>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.z600,fontWeight:600,whiteSpace:"nowrap"}}>Room 2</span>
+                    <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z600,fontWeight:600,whiteSpace:"nowrap"}}>Room 2</span>
                   </div>
                 </>
               )}
@@ -1758,7 +1758,7 @@ export default function WorkforceSim(){
                             </>
                           ):(
                             <span style={{
-                              fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,
+                              fontFamily:"'Geist Mono',monospace",fontSize:9,fontWeight:700,
                               color:disabled?DS.z300:we?DS.i500:DS.z600,
                               textDecoration:disabled?"line-through":"none",
                             }}>{letter}</span>
@@ -1771,7 +1771,7 @@ export default function WorkforceSim(){
                   <div style={{position:"absolute",left:YM,top:22,height:16}}>
                     {dayInfos.filter(({d,isMon})=>d===0||isMon).map(({d,dayNum,month})=>(
                       <div key={d} style={{position:"absolute",left:d*cwZ+2,
-                        fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:500,
+                        fontFamily:"'Geist Mono',monospace",fontSize:8,fontWeight:500,
                         color:DS.z600,whiteSpace:"nowrap",lineHeight:"16px"}}>
                         {dayNum} {month}
                       </div>
@@ -1803,16 +1803,16 @@ export default function WorkforceSim(){
                   <rect width="100%" height="100%" fill="url(#dots)"/>
                 </svg>
                 <div style={{position:"relative",textAlign:"left",maxWidth:480,padding:"0 24px",marginTop:"-8vh"}}>
-                  <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:20,fontWeight:700,color:DS.z800,marginBottom:18,letterSpacing:"-0.02em",textAlign:"center"}}>Your Dynamic Training Canvas</div>
+                  <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:20,fontWeight:700,color:DS.z800,marginBottom:18,letterSpacing:"-0.02em",textAlign:"center"}}>Your Dynamic Training Canvas</div>
                   <div style={{display:"flex",flexDirection:"column",gap:9}}>
                     {/* Step 1 */}
                     <div style={{display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,0.60)",borderRadius:12,padding:"11px 16px",border:`1px solid rgba(255,255,255,0.7)`,backdropFilter:"blur(16px)"}}>
                       <div style={{flexShrink:0,padding:"7px 16px",borderRadius:9,background:DS.z900,
-                        fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:12,fontWeight:700,color:"white",
+                        fontFamily:"'Geist',system-ui,sans-serif",fontSize:12,fontWeight:700,color:"white",
                         whiteSpace:"nowrap",userSelect:"none"}}>
                         Create Synthetic Data
                       </div>
-                      <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,color:DS.z600,lineHeight:1.5}}>
+                      <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:DS.z600,lineHeight:1.5}}>
                         Open <strong style={{color:DS.z800}}>Create Synthetic Data</strong> panel and configure your workforce parameters.
                       </span>
                     </div>
@@ -1820,11 +1820,11 @@ export default function WorkforceSim(){
                     <div style={{display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,0.60)",borderRadius:12,padding:"11px 16px",border:`1px solid rgba(255,255,255,0.7)`,backdropFilter:"blur(16px)"}}>
                       <div style={{flexShrink:0,padding:"7px 16px",borderRadius:9,
                         background:"transparent",border:`1.5px solid ${DS.i200}`,
-                        fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:12,fontWeight:700,color:DS.i600,
+                        fontFamily:"'Geist',system-ui,sans-serif",fontSize:12,fontWeight:700,color:DS.i600,
                         whiteSpace:"nowrap",userSelect:"none"}}>
                         ◌ Simulate Data
                       </div>
-                      <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,color:DS.z600,lineHeight:1.5}}>
+                      <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:DS.z600,lineHeight:1.5}}>
                         Generate a synthetic workforce schedule — the <em style={{color:DS.i500}}>chaotic unoptimised state</em>.
                       </span>
                     </div>
@@ -1832,11 +1832,11 @@ export default function WorkforceSim(){
                     <div style={{display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,0.60)",borderRadius:12,padding:"11px 16px",border:`1px solid rgba(255,255,255,0.7)`,backdropFilter:"blur(16px)"}}>
                       <div style={{flexShrink:0,padding:"7px 16px",borderRadius:9,
                         background:`linear-gradient(135deg,${DS.i500},${DS.t500})`,
-                        fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:12,fontWeight:700,color:"white",
+                        fontFamily:"'Geist',system-ui,sans-serif",fontSize:12,fontWeight:700,color:"white",
                         opacity:0.5,whiteSpace:"nowrap",userSelect:"none"}}>
                         ⚡ Optimize Schedule
                       </div>
-                      <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:11,color:DS.z600,lineHeight:1.5}}>
+                      <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:11,color:DS.z600,lineHeight:1.5}}>
                         Run CP-SAT optimisation to find the best possible training schedule.
                       </span>
                     </div>
@@ -1869,14 +1869,14 @@ export default function WorkforceSim(){
               <div style={{borderRadius:12,overflow:"hidden",border:`1.5px solid ${DS.red}33`,background:"rgba(255,241,242,0.80)",animation:"wrs-fadein 0.2s ease"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",borderBottom:`1px solid ${DS.red}18`}}>
                   <div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:DS.red,letterSpacing:"0.10em",textTransform:"uppercase"}}>Unscheduled Training</div>
-                    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:"#9F1239",marginTop:2}}>
+                    <div style={{fontFamily:"'Geist Mono',monospace",fontSize:9,fontWeight:700,color:DS.red,letterSpacing:"0.10em",textTransform:"uppercase"}}>Unscheduled Training</div>
+                    <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:"#9F1239",marginTop:2}}>
                       {proj.overflowCount} placements · {snap.placements.filter(p=>p.overflow).map(p=>p.employee_id).filter((v,i,a)=>a.indexOf(v)===i).length} employees affected
                     </div>
                   </div>
                   <button onClick={()=>setShowOverflowPanel(false)} style={{width:24,height:24,borderRadius:6,background:"rgba(255,255,255,0.6)",border:`1px solid ${DS.red}33`,cursor:"pointer",color:DS.red,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
                 </div>
-                <div style={{padding:"6px 10px 6px",fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:9,color:"#7F1D1D",lineHeight:1.65,background:"rgba(255,220,220,0.3)"}}>
+                <div style={{padding:"6px 10px 6px",fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:"#7F1D1D",lineHeight:1.65,background:"rgba(255,220,220,0.3)"}}>
                   These employees require training that couldn't fit in the {snap.time_model.training_window_days}-day window. Extend the window, enable weekends, or increase training rooms to resolve.
                 </div>
                 <div style={{padding:"8px 10px 10px",display:"flex",flexDirection:"column",gap:4,maxHeight:380,overflowY:"auto"}}>
@@ -1892,11 +1892,11 @@ export default function WorkforceSim(){
                     return [...byEmp.entries()].sort((a,b)=>a[1].label.localeCompare(b[1].label)).map(([eid,{label,courses}])=>(
                       <div key={eid} style={{padding:"7px 10px",background:"rgba(255,255,255,0.6)",border:`1px solid ${DS.red}22`,borderRadius:8}}>
                         <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                          <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z800,fontWeight:700}}>{label}</span>
-                          <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.red,fontWeight:600,flexShrink:0,marginLeft:6}}>{courses.length} missing</span>
+                          <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z800,fontWeight:700}}>{label}</span>
+                          <span style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.red,fontWeight:600,flexShrink:0,marginLeft:6}}>{courses.length} missing</span>
                         </div>
                         {courses.map((c,i)=>(
-                          <div key={i} style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#9F1239",lineHeight:1.6,
+                          <div key={i} style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:"#9F1239",lineHeight:1.6,
                             overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                             · {c.label} ({c.hours}h)
                           </div>
@@ -1911,7 +1911,7 @@ export default function WorkforceSim(){
             {/* Drill-down hint when cell is selected */}
             {selCell&&!selEmp&&(
               <div style={{padding:"8px 10px",background:"rgba(238,242,255,0.75)",border:`1px solid ${DS.i200}`,borderRadius:9}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.i600,lineHeight:1.9,fontWeight:500}}>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,lineHeight:1.9,fontWeight:500}}>
                   💡 <strong>Click a · dot</strong> in this block<br/>to focus on an employee
                 </div>
               </div>
@@ -1920,7 +1920,7 @@ export default function WorkforceSim(){
             {/* How-to hint when nothing is selected */}
             {!selCell&&!selEmp&&(
               <div style={{padding:"12px",background:"rgba(238,242,255,0.65)",border:`1px solid ${DS.i100}`,borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:DS.i600,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:7}}>How to explore</div>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:7}}>How to explore</div>
                 <div style={{display:"flex",flexDirection:"column",gap:7}}>
                   {[
                     ["①","Click any coloured block on the timeline to inspect courses and trainees."],
@@ -1928,8 +1928,8 @@ export default function WorkforceSim(){
                     ["③","Zoom in (0.5×–3×) to make individual employee dots easier to click."],
                   ].map(([n,t])=>(
                     <div key={n} style={{display:"flex",gap:7,alignItems:"flex-start"}}>
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.i500,fontWeight:700,flexShrink:0,lineHeight:1.5}}>{n}</span>
-                      <span style={{fontFamily:"'DM Sans',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.55}}>{t}</span>
+                      <span style={{fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.i500,fontWeight:700,flexShrink:0,lineHeight:1.5}}>{n}</span>
+                      <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.55}}>{t}</span>
                     </div>
                   ))}
                 </div>
@@ -1963,7 +1963,7 @@ export default function WorkforceSim(){
         {/* Status pip */}
         <div style={{display:"flex",alignItems:"center",gap:5,paddingRight:10,borderRight:`1px solid ${DS.z150}`}}>
           <div style={{width:7,height:7,borderRadius:"50%",background:statusColors[status],boxShadow:`0 0 8px ${statusColors[status]}88`,animation:isActive?"wrs-pulse 1s infinite":"none"}}/>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:DS.z600,fontWeight:500,letterSpacing:"0.05em"}}>{statusLabels[status].toUpperCase()}</span>
+          <span style={{fontFamily:"'Geist Mono',monospace",fontSize:10,color:DS.z600,fontWeight:500,letterSpacing:"0.05em"}}>{statusLabels[status].toUpperCase()}</span>
         </div>
 
         {/* Ghost btn */}
@@ -2002,7 +2002,7 @@ export default function WorkforceSim(){
             </div>
             {/* Message — re-animate on change via key */}
             <div key={solverMsg} style={{
-              fontFamily:"'DM Sans',system-ui,sans-serif",
+              fontFamily:"'Geist',system-ui,sans-serif",
               fontSize:17,fontWeight:700,color:"white",
               letterSpacing:"-0.02em",lineHeight:1.4,
               marginBottom:14,
@@ -2019,7 +2019,7 @@ export default function WorkforceSim(){
               }}/>
             </div>
             {/* Countdown */}
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(255,255,255,0.38)",letterSpacing:"0.04em"}}>
+            <div style={{fontFamily:"'Geist Mono',monospace",fontSize:11,color:"rgba(255,255,255,0.38)",letterSpacing:"0.04em"}}>
               {Math.max(0,SOLVE_LIMIT_S-(live/1000)).toFixed(1)}s remaining
             </div>
           </div>
