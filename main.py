@@ -11,7 +11,7 @@ GET  /simulate/{sim_id}
 """
 from __future__ import annotations
 
-import copy, json, threading, queue
+import os, copy, json, threading, queue
 from datetime import datetime, timezone
 from typing import Dict
 from uuid import uuid4
@@ -24,12 +24,14 @@ import cpsat
 from generator import build_snapshot_from_profile
 from models import GeneratorProfile
 
+import os
+
 app = FastAPI(title="Enterprise Training Scheduler", version="0.2")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
