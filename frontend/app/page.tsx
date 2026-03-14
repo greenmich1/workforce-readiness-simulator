@@ -63,7 +63,7 @@ interface Projection { grid:GridCell[][]; roomGrids:[GridCell[][],GridCell[][]];
 type Status = "idle"|"generating"|"generated"|"solving"|"solved"|"error";
 interface Tooltip { empId:string; name:string; courseName:string; durationH:number; x:number; y:number; }
 
-const API  = "http://localhost:8000";
+const API  = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const SOLVE_LIMIT_S = 30; // solver time limit in seconds
 const SOLVER_MESSAGES = [
   "Initialising constraint model…",
@@ -1048,8 +1048,8 @@ export default function WorkforceSim(){
   const xAxisRef     = useRef<HTMLDivElement>(null);
   const hovEmpRef    = useRef<string|null>(null);
   const chRef        = useRef<number>(28);
-  const rafRef       = useRef<number>();
-  const animRef      = useRef<number>();
+  const rafRef       = useRef<number>(0);
+  const animRef      = useRef<number>(0);
   const animVal      = useRef<number>(1);
 
   const [sim,      setSim]      = useState<Simulation|null>(null);
