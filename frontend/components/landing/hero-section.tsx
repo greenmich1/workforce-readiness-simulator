@@ -4,9 +4,26 @@ export function HeroSection() {
       <div className="max-w-4xl mx-auto text-center relative z-10">
         {/* Amorphous AI Blob */}
         <div className="flex justify-center mb-8 animate-fade-in-up">
-          <div className="w-20 h-20 blob-entrance">
-            <div className="w-full h-full blob-spin">
-              <div className="w-full h-full blob-morph bg-gradient-to-br from-indigo via-indigo to-teal shadow-[0_8px_40px_rgba(99,102,241,0.4),0_4px_16px_rgba(20,184,166,0.25)]" />
+          <div 
+            className="blob-entrance"
+            style={{ width: 80, height: 80, flexShrink: 0 }}
+          >
+            {/* Outer spin wrapper — 12s full rotation */}
+            <div 
+              className="blob-spin"
+              style={{ width: "100%", height: "100%" }}
+            >
+              {/* Morphing blob — 4s borderRadius cycle */}
+              <div 
+                className="blob-morph"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "linear-gradient(135deg, #818CF8 0%, #6366F1 40%, #14B8A6 100%)",
+                  boxShadow: "0 8px 40px rgba(99,102,241,0.4), 0 4px 16px rgba(20,184,166,0.25)",
+                  borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%",
+                }}
+              />
             </div>
           </div>
         </div>
