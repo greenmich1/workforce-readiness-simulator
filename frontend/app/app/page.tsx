@@ -1072,7 +1072,9 @@ export default function WorkforceSim(){
   const [complexity,   setComplexity]   = useState<Complexity|null>(null);
   const [solveMetadata, setSolveMetadata] = useState<SolveMetadata|null>(null);
   const [deepSolving,  setDeepSolving]  = useState(false);  // true while SSE deep-solve is running
+  const [deepSolveStopped, setDeepSolveStopped] = useState(false); // true after user clicks "Good enough"
   const currentTimeLimitRef = useRef<number>(SOLVE_LIMIT_S); // tracks actual time limit for countdown
+  const lastStreamedSnapRef = useRef<Snapshot|null>(null);   // last snapshot received from SSE stream
   const [zoom,     setZoom]     = useState(1);   // 0.5 | 1 | 1.5 | 2 | 3
   const [numTrainers, setNumTrainers] = useState<1|2>(1); // 1 or 2 rooms/trainers
   const [simNumTrainers, setSimNumTrainers] = useState<1|2>(1); // what was used when simulated
@@ -1086,7 +1088,7 @@ export default function WorkforceSim(){
   },[t0,t1]);
 
   // solveDisplay returns a bare number string; the tile renders the unit separately
-  const solveProgress = t0&&!t1 ? Math.min(1, live/(currentTimeLimitRef.current*1000)) : undefined;
+  const solveProgress = t0&&!t1 ? (deepSolving ? Math.min(1, live/(currentTimeLimitRef.current*1000)) : Math.min(1, live/(SOLVE_LIMIT_S*1000))) : undefined;
   const solverMsgIdx  = t0&&!t1 ? Math.min(SOLVER_MESSAGES.length-1, Math.floor((live/1000)/2.2)) : -1;
   const solverMsg     = solverMsgIdx>=0 ? SOLVER_MESSAGES[solverMsgIdx] : null;
   const solveDisplay=useMemo(()=>{
@@ -1095,11 +1097,18 @@ export default function WorkforceSim(){
       return s<60?`${s.toFixed(1)}`:`${Math.floor(s/60)}m${Math.round(s%60)}`;
     }
     if(t0&&!t1){
-      const remaining=Math.max(0, currentTimeLimitRef.current*1000-live)/1000;
+      if(deepSolving){
+        // Deep solve: count UP (elapsed)
+        const elapsed=live/1000;
+        return elapsed<60?`${elapsed.toFixed(1)}`:`${Math.floor(elapsed/60)}m${Math.round(elapsed%60)}`;
+      }
+      // Fast solve: count DOWN (remaining)
+      const remaining=Math.max(0, SOLVE_LIMIT_S*1000-live)/1000;
       return `${remaining.toFixed(1)}`;
     }
     return "—";
-  },[t0,t1,live]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[t0,t1,live,deepSolving]);
 
   const today    = useMemo(()=>toIso(new Date()),[]);
   const maxStart = useMemo(()=>addMonths(today,6),[today]);
@@ -1304,7 +1313,7 @@ export default function WorkforceSim(){
   },[proj,selCell,sim]);
 
   const generate=async()=>{
-    setStatus("generating"); setSelCell(null); setSelEmp(null); setT0(null); setT1(null); setTip(null);
+    setStatus("generating"); setSelCell(null); setSelEmp(null); setT0(null); setT1(null); setTip(null); setComplexity(null); setSolveMetadata(null); setDeepSolveStopped(false);
     try{
       const enabledPatterns=SHIFT_DEFS.filter(d=>shiftEnabled[d.id as ShiftId]);
       const payload={
@@ -1336,7 +1345,8 @@ export default function WorkforceSim(){
   const solve=async()=>{
     if(!sim) return;
     currentTimeLimitRef.current = SOLVE_LIMIT_S;
-    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving"); setSolveMetadata(null); setDeepSolving(false);
+    lastStreamedSnapRef.current = null;
+    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving"); setSolveMetadata(null); setDeepSolving(false); setDeepSolveStopped(false);
     try{
       const res=await fetch(`${API}/simulate/solve/${sim.simulation_id}?num_rooms=${numTrainers}&time_limit_seconds=${SOLVE_LIMIT_S}`,{method:"POST"});
       if(!res.ok) throw new Error();
@@ -1363,12 +1373,22 @@ export default function WorkforceSim(){
 
   const stopDeepSolve = () => {
     if(deepSolveEsRef.current){ deepSolveEsRef.current.close(); deepSolveEsRef.current=null; }
-    setT1(Date.now()); setStatus("solved"); setDeepSolving(false);
+    // Commit the last best snapshot received from the stream
+    if(lastStreamedSnapRef.current){
+      const snap=lastStreamedSnapRef.current;
+      setSim(s=>s?{...s,snapshot:snap}:s);
+      setSolveMetadata(snap.solve_metadata??null);
+      setScoreH(h=>[...h.slice(-9),snap.metrics?.score??0]);
+      setCompH(h=>[...h.slice(-9),snap.metrics?.compression_percent??0]);
+      startAnim();
+    }
+    setT1(Date.now()); setStatus("solved"); setDeepSolving(false); setDeepSolveStopped(true);
   };
 
   const deepSolve=async()=>{
     if(!sim||deepSolving) return;
-    setDeepSolving(true);
+    setDeepSolving(true); setDeepSolveStopped(false);
+    lastStreamedSnapRef.current = null;
     const timeLimit=Math.max(DEEP_SOLVE_LIMIT_S, Math.ceil(complexity?.estimated_seconds??DEEP_SOLVE_LIMIT_S));
     currentTimeLimitRef.current = timeLimit;
     setT0(Date.now()); setT1(null); setLive(0); setStatus("solving");
@@ -1380,6 +1400,7 @@ export default function WorkforceSim(){
           const item=JSON.parse(ev.data);
           if(item.type==="progress"&&item.snapshot){
             const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
+            lastStreamedSnapRef.current = snap;
             setSim(s=>s?{...s,snapshot:snap}:s);
             setSolveMetadata(snap.solve_metadata??null);
             startAnim();
@@ -1388,6 +1409,7 @@ export default function WorkforceSim(){
             es.close(); setT1(Date.now());
             if(item.snapshot){
               const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
+              lastStreamedSnapRef.current = snap;
               setSim(s=>s?{...s,snapshot:snap}:s);
               setSolveMetadata(snap.solve_metadata??null);
               setScoreH(h=>[...h.slice(-9),snap.metrics?.score??0]);
@@ -1517,12 +1539,13 @@ export default function WorkforceSim(){
               progress={solveProgress}
               color={DS.z500} accent={DS.z300}
               sub={
-                deepSolving ? "⟳ Deep solving…" :
-                m?.solver==="cpsat_optimal" ? "✓ Optimal" :
-                m?.solver==="cpsat_feasible" ? "~ Feasible — not yet proven optimal" :
-                undefined
+                deepSolving
+                  ? `⟳ Deep solving… est. ~${Math.round(currentTimeLimitRef.current)}s total`
+                  : m?.solver==="cpsat_optimal" ? "✓ Optimal"
+                  : m?.solver==="cpsat_feasible" ? "~ Feasible — not yet proven optimal"
+                  : undefined
               }
-              tooltip="The wall-clock time taken by the Google OR-Tools CP-SAT solver to find the optimal (or best feasible) schedule. The solver runs for up to 30 seconds initially. 'cpsat_optimal' means a proven best solution was found; 'cpsat_feasible' means the best solution found within the time limit — click Continue →Optimal in the dock to keep solving."/>
+              tooltip="During the fast solve (30s), the timer counts DOWN showing time remaining. During deep solve, it counts UP showing elapsed time, with the estimated total shown below. '✓ Optimal' means the schedule is mathematically proven best. '~ Feasible' means a good solution was found but more time may improve it."/>
             <MetricTile label="Readiness Score"
               display={m?.score??0} unit="%" spark={scoreH} color={DS.i500} accent={DS.i400}
               flash={scoreFlash}
@@ -2099,8 +2122,8 @@ export default function WorkforceSim(){
             onClick={stopDeepSolve}
             wide
           />
-        ) : status==="solved" && solveMetadata && !solveMetadata.is_optimal ? (
-          // After feasible solve: show Continue →Optimal with estimated time
+        ) : status==="solved" && solveMetadata && !solveMetadata.is_optimal && !deepSolveStopped ? (
+          // After feasible solve (and not stopped): show Continue →Optimal with estimated time
           <DockBtn
             label={
               <span style={{display:"flex",alignItems:"center",gap:7}}>
@@ -2120,6 +2143,9 @@ export default function WorkforceSim(){
             onClick={deepSolve}
             wide
           />
+        ) : status==="solved" && solveMetadata && !solveMetadata.is_optimal && deepSolveStopped ? (
+          // After user clicked "Good enough" — grey out, no further action
+          <DockBtn label="✓ Stopped — simulate to restart" onClick={()=>{}} disabled wide/>
         ) : (
           // Default: Optimize Schedule
           <DockBtn label="⚡  Optimize Schedule" onClick={solve} disabled={!sim||isActive} wide/>
@@ -2170,9 +2196,12 @@ export default function WorkforceSim(){
                 borderRadius:2,transition:"width 0.1s linear",
               }}/>
             </div>
-            {/* Countdown */}
+            {/* Timer — countdown for fast solve, elapsed/estimated for deep solve */}
             <div style={{fontFamily:"'Geist Mono',monospace",fontSize:11,color:"rgba(255,255,255,0.38)",letterSpacing:"0.04em"}}>
-              {Math.max(0,SOLVE_LIMIT_S-(live/1000)).toFixed(1)}s remaining
+              {deepSolving
+                ? `${(live/1000).toFixed(1)}s elapsed · ~${Math.round(currentTimeLimitRef.current)}s estimated`
+                : `${Math.max(0,SOLVE_LIMIT_S-(live/1000)).toFixed(1)}s remaining`
+              }
             </div>
           </div>
         </div>
