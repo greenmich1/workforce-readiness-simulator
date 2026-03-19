@@ -154,21 +154,29 @@ def solve_stream(
 
     threading.Thread(target=run_solver, daemon=True).start()
 
-    stream_timeout = time_limit_seconds + 30.0  # grace period after solver finishes
+    # Get fast-solve objective for comparison (lower = better packing)
+    fast_solve_meta = sim.get("snapshot", {}).get("solve_metadata", {})
+    fast_objective  = fast_solve_meta.get("objective_value")
+
+    stream_timeout = time_limit_seconds + 30.0
 
     def event_stream():
-        """
-        Streams events from the solver queue.
-        - "progress": solver found an improving solution (may never fire if warm-start is already good)
-        - "heartbeat": emitted every 5s so the frontend clock keeps ticking even with no improvement
-        - "done": solver finished — always carries the final best snapshot
-        - "timeout": stream timed out
-        """
+        # Emit immediately so frontend clock starts ticking right away
+        yield f"data: {json.dumps({'type': 'started', 'fast_objective': fast_objective})}\n\n"
+
         elapsed_ticks = 0
         while True:
             try:
-                # Poll every 5s max so we can send heartbeats
                 item = q.get(timeout=5.0)
+                # Attach objective improvement to done event
+                if item["type"] == "done":
+                    deep_meta = (item.get("snapshot") or {}).get("solve_metadata", {})
+                    deep_obj  = deep_meta.get("objective_value")
+                    if fast_objective and deep_obj and fast_objective > 0:
+                        improvement = round((fast_objective - deep_obj) / fast_objective * 100, 1)
+                    else:
+                        improvement = 0.0
+                    item["objective_improvement_percent"] = max(0.0, improvement)
                 yield f"data: {json.dumps(item, default=str)}\n\n"
                 if item["type"] == "done":
                     break
@@ -177,7 +185,6 @@ def solve_stream(
                 if elapsed_ticks >= stream_timeout:
                     yield 'data: {"type":"timeout"}\n\n'
                     break
-                # Heartbeat — tells frontend the solver is still running
                 hb = json.dumps({"type": "heartbeat", "elapsed": elapsed_ticks})
                 yield f"data: {hb}\n\n"
 

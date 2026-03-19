@@ -1071,10 +1071,11 @@ export default function WorkforceSim(){
   const [showOverflowPanel, setShowOverflowPanel] = useState(false);
   const [complexity,   setComplexity]   = useState<Complexity|null>(null);
   const [solveMetadata, setSolveMetadata] = useState<SolveMetadata|null>(null);
-  const [deepSolving,  setDeepSolving]  = useState(false);  // true while SSE deep-solve is running
-  const [deepSolveStopped, setDeepSolveStopped] = useState(false); // true after user clicks "Good enough"
-  const currentTimeLimitRef = useRef<number>(SOLVE_LIMIT_S); // tracks actual time limit for countdown
-  const lastStreamedSnapRef = useRef<Snapshot|null>(null);   // last snapshot received from SSE stream
+  const [deepSolving,  setDeepSolving]  = useState(false);
+  const [deepSolveStopped, setDeepSolveStopped] = useState(false);
+  const [objectiveImprovement, setObjectiveImprovement] = useState<number|null>(null);
+  const currentTimeLimitRef = useRef<number>(SOLVE_LIMIT_S);
+  const lastStreamedSnapRef = useRef<Snapshot|null>(null);
   const [zoom,     setZoom]     = useState(1);   // 0.5 | 1 | 1.5 | 2 | 3
   const [numTrainers, setNumTrainers] = useState<1|2>(1); // 1 or 2 rooms/trainers
   const [simNumTrainers, setSimNumTrainers] = useState<1|2>(1); // what was used when simulated
@@ -1313,7 +1314,7 @@ export default function WorkforceSim(){
   },[proj,selCell,sim]);
 
   const generate=async()=>{
-    setStatus("generating"); setSelCell(null); setSelEmp(null); setT0(null); setT1(null); setTip(null); setComplexity(null); setSolveMetadata(null); setDeepSolveStopped(false);
+    setStatus("generating"); setSelCell(null); setSelEmp(null); setT0(null); setT1(null); setTip(null); setComplexity(null); setSolveMetadata(null); setDeepSolveStopped(false); setObjectiveImprovement(null);
     try{
       const enabledPatterns=SHIFT_DEFS.filter(d=>shiftEnabled[d.id as ShiftId]);
       const payload={
@@ -1401,12 +1402,11 @@ export default function WorkforceSim(){
         try{
           const item=JSON.parse(ev.data);
 
-          // Heartbeat — solver is still running but found no improvement yet.
-          // Just keep the clock ticking, don't update canvas.
-          if(item.type==="heartbeat"){
-            // Clock is already ticking via the live interval — nothing extra needed
-            return;
-          }
+          // started — backend confirmed stream is open, clock can start
+          if(item.type==="started") return;
+
+          // Heartbeat — solver running, no improvement yet. Clock ticks via interval.
+          if(item.type==="heartbeat") return;
 
           if(item.type==="progress"&&item.snapshot){
             const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
@@ -1417,8 +1417,11 @@ export default function WorkforceSim(){
           }
           if(item.type==="done"){
             es.close(); setT1(Date.now());
-            // ALWAYS commit the final snapshot — even if it's no better than before,
-            // the canvas should reflect the completed deep-solve state
+            // Capture objective improvement reported by backend
+            if(typeof item.objective_improvement_percent === "number"){
+              setObjectiveImprovement(item.objective_improvement_percent);
+            }
+            // Always commit best snapshot
             const rawSnap = item.snapshot ?? lastStreamedSnapRef.current;
             if(rawSnap){
               const snap=filterWeekendPlacements(rawSnap,prof.allow_saturday,prof.allow_sunday);
@@ -1558,7 +1561,7 @@ export default function WorkforceSim(){
                   : m?.solver==="cpsat_feasible" ? "~ Feasible — not yet proven optimal"
                   : undefined
               }
-              tooltip="During the fast solve (30s), the timer counts DOWN showing time remaining. During deep solve, it counts UP showing elapsed time, with the estimated total shown below. '✓ Optimal' means the schedule is mathematically proven best. '~ Feasible' means a good solution was found but more time may improve it."/>
+              tooltip="During the fast solve (30s), the timer counts DOWN showing time remaining. During Deeper Solve, it counts UP showing elapsed time. '✓ Optimal' means the schedule is mathematically proven best. '~ Feasible' means a good solution was found — the gap% shown is mathematical proof difficulty, not a measure of schedule quality. A 50% gap does not mean the schedule is 50% worse than possible; it means CP-SAT hasn't yet proved its own solution is optimal."/>
             <MetricTile label="Readiness Score"
               display={m?.score??0} unit="%" spark={scoreH} color={DS.i500} accent={DS.i400}
               flash={scoreFlash}
@@ -2048,8 +2051,8 @@ export default function WorkforceSim(){
               <div style={{padding:"10px 12px",background:"rgba(245,243,255,0.80)",border:`1px solid ${DS.i200}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
                 <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>Result: Feasible</div>
                 <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.6,marginBottom:8}}>
-                  The 30s solve found a valid schedule. CP-SAT's lower bound shows it is within{" "}
-                  {solveMetadata.gap_percent!=null&&<strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong>} of the theoretical optimum.
+                  The 30s solve found a valid schedule. The{" "}
+                  {solveMetadata.gap_percent!=null&&<strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong>} figure is CP-SAT's <em>proof gap</em> — it reflects how hard it is to mathematically certify optimality, not how much better the schedule could be. The actual schedule quality is often already excellent.
                 </div>
                 <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.z600,lineHeight:1.6,marginBottom:6}}>
                   Click <strong style={{color:DS.i600}}>Deeper Solve</strong> below to give CP-SAT more time. It may find a better arrangement, or confirm this is already near-optimal. You get one shot at this — stop when satisfied.
@@ -2062,12 +2065,23 @@ export default function WorkforceSim(){
               </div>
             )}
 
-            {/* After "Good enough — stop here" was clicked */}
+            {/* After "Good enough — stop here" or deep solve completed */}
             {status==="solved"&&deepSolveStopped&&(
               <div style={{padding:"10px 12px",background:"rgba(250,250,252,0.80)",border:`1px solid ${DS.z200}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
-                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:5}}>Solve Stopped</div>
-                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z600,lineHeight:1.6}}>
-                  The best solution found so far is shown on the canvas. Click <strong>Simulate Data</strong> to start a new run with different parameters.
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>
+                  {objectiveImprovement!=null&&objectiveImprovement>0.5 ? "✓ Improved" : "Solve Complete"}
+                </div>
+                {objectiveImprovement!=null&&objectiveImprovement>0.5 ? (
+                  <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.6}}>
+                    The deeper solve found a <strong style={{color:DS.t600}}>{objectiveImprovement.toFixed(1)}% improvement</strong> in session packing efficiency over the initial solve. The canvas has been updated.
+                  </div>
+                ) : (
+                  <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.6}}>
+                    No further improvement was found. This means the initial 30s solve was already <strong>near-optimal</strong> for this problem. The 51% "gap" is a mathematical proof difficulty — not a measure of schedule quality.
+                  </div>
+                )}
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.z500,lineHeight:1.5,marginTop:6}}>
+                  Click <strong>Simulate Data</strong> to run a new scenario.
                 </div>
               </div>
             )}

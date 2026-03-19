@@ -458,6 +458,8 @@ def _cpsat_solve(snapshot, callback, time_limit=TIME_LIMIT_SEC,
         "gap_percent":        gap,
         "solutions_found":    n_solutions,
         "solver_label":       label,
+        "objective_value":    obj,   # raw CP-SAT objective — used to measure deep-solve improvement
+        "best_bound":         bound,
     }
 
     if callback is not None:
