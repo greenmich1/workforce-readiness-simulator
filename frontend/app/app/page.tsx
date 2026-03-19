@@ -1373,13 +1373,15 @@ export default function WorkforceSim(){
 
   const stopDeepSolve = () => {
     if(deepSolveEsRef.current){ deepSolveEsRef.current.close(); deepSolveEsRef.current=null; }
-    // Commit the last best snapshot received from the stream
-    if(lastStreamedSnapRef.current){
-      const snap=lastStreamedSnapRef.current;
-      setSim(s=>s?{...s,snapshot:snap}:s);
-      setSolveMetadata(snap.solve_metadata??null);
-      setScoreH(h=>[...h.slice(-9),snap.metrics?.score??0]);
-      setCompH(h=>[...h.slice(-9),snap.metrics?.compression_percent??0]);
+    // Commit the last best snapshot received from the stream.
+    // Fallback to current sim snapshot (the fast-solve result) if no progress events arrived —
+    // this ensures the canvas always shows the best known solution after stopping.
+    const snapToCommit = lastStreamedSnapRef.current ?? sim?.snapshot ?? null;
+    if(snapToCommit){
+      setSim(s=>s?{...s,snapshot:snapToCommit}:s);
+      setSolveMetadata(snapToCommit.solve_metadata??null);
+      setScoreH(h=>[...h.slice(-9),snapToCommit.metrics?.score??0]);
+      setCompH(h=>[...h.slice(-9),snapToCommit.metrics?.compression_percent??0]);
       startAnim();
     }
     setT1(Date.now()); setStatus("solved"); setDeepSolving(false); setDeepSolveStopped(true);
@@ -1398,6 +1400,14 @@ export default function WorkforceSim(){
       es.onmessage=(ev)=>{
         try{
           const item=JSON.parse(ev.data);
+
+          // Heartbeat — solver is still running but found no improvement yet.
+          // Just keep the clock ticking, don't update canvas.
+          if(item.type==="heartbeat"){
+            // Clock is already ticking via the live interval — nothing extra needed
+            return;
+          }
+
           if(item.type==="progress"&&item.snapshot){
             const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
             lastStreamedSnapRef.current = snap;
@@ -1407,8 +1417,11 @@ export default function WorkforceSim(){
           }
           if(item.type==="done"){
             es.close(); setT1(Date.now());
-            if(item.snapshot){
-              const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
+            // ALWAYS commit the final snapshot — even if it's no better than before,
+            // the canvas should reflect the completed deep-solve state
+            const rawSnap = item.snapshot ?? lastStreamedSnapRef.current;
+            if(rawSnap){
+              const snap=filterWeekendPlacements(rawSnap,prof.allow_saturday,prof.allow_sunday);
               lastStreamedSnapRef.current = snap;
               setSim(s=>s?{...s,snapshot:snap}:s);
               setSolveMetadata(snap.solve_metadata??null);
@@ -2023,24 +2036,38 @@ export default function WorkforceSim(){
                 {complexity.suggest_deep_solve&&(
                   <div style={{marginTop:6,padding:"5px 8px",background:"rgba(99,102,241,0.08)",border:`1px solid ${DS.i200}`,borderRadius:7}}>
                     <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.i700,lineHeight:1.5}}>
-                      ⚡ Complex problem — the 30s fast solve may return a <em>feasible</em> result. Use <strong>Continue →Optimal</strong> after optimising for a proven best solution.
+                      ⚡ Complex problem — the 30s fast solve may return a <em>feasible</em> result. Use <strong>Deeper Solve</strong> after optimising for a proven best solution.
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Post-solve feasible prompt — shown when result is not yet optimal */}
-            {status==="solved"&&solveMetadata&&!solveMetadata.is_optimal&&!deepSolving&&(
+            {/* Post-solve feasible prompt — shown when result is not yet optimal and user hasn't stopped */}
+            {status==="solved"&&solveMetadata&&!solveMetadata.is_optimal&&!deepSolving&&!deepSolveStopped&&(
               <div style={{padding:"10px 12px",background:"rgba(245,243,255,0.80)",border:`1px solid ${DS.i200}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
                 <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>Result: Feasible</div>
                 <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.6,marginBottom:8}}>
-                  The 30s solve found a good schedule but hasn't proven it's the <em>best possible</em>.
-                  {solveMetadata.gap_percent!=null&&<> The solution is within <strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong> of optimal.</>}
+                  The 30s solve found a valid schedule. CP-SAT's lower bound shows it is within{" "}
+                  {solveMetadata.gap_percent!=null&&<strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong>} of the theoretical optimum.
                 </div>
-                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.z600,lineHeight:1.5}}>
-                  Click <strong style={{color:DS.i600}}>Continue →Optimal</strong> in the dock to keep solving
-                  {complexity&&<> for up to <strong>~{Math.round(complexity.estimated_seconds)}s</strong></>} until a proven optimal solution is found.
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.z600,lineHeight:1.6,marginBottom:6}}>
+                  Click <strong style={{color:DS.i600}}>Deeper Solve</strong> below to give CP-SAT more time. It may find a better arrangement, or confirm this is already near-optimal. You get one shot at this — stop when satisfied.
+                </div>
+                {complexity&&(
+                  <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z400,padding:"4px 8px",background:"rgba(238,242,255,0.6)",borderRadius:6}}>
+                    Est. solve time: ~{Math.round(complexity.estimated_seconds)}s · {complexity.complexity_label}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* After "Good enough — stop here" was clicked */}
+            {status==="solved"&&deepSolveStopped&&(
+              <div style={{padding:"10px 12px",background:"rgba(250,250,252,0.80)",border:`1px solid ${DS.z200}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.z500,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:5}}>Solve Stopped</div>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z600,lineHeight:1.6}}>
+                  The best solution found so far is shown on the canvas. Click <strong>Simulate Data</strong> to start a new run with different parameters.
                 </div>
               </div>
             )}
@@ -2123,11 +2150,11 @@ export default function WorkforceSim(){
             wide
           />
         ) : status==="solved" && solveMetadata && !solveMetadata.is_optimal && !deepSolveStopped ? (
-          // After feasible solve (and not stopped): show Continue →Optimal with estimated time
+          // After feasible solve (and not stopped): show Deeper Solve with estimated time
           <DockBtn
             label={
               <span style={{display:"flex",alignItems:"center",gap:7}}>
-                <span>⏳ Continue →Optimal</span>
+                <span>⏳ Deeper Solve</span>
                 {complexity&&(
                   <span style={{
                     fontFamily:"'Geist Mono',monospace",fontSize:9,

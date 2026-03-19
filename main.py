@@ -5,40 +5,21 @@ Endpoints
 ---------
 GET  /health
 POST /simulate/generate
-GET  /simulate/complexity/{sim_id}      — complexity estimate (no solve)
-POST /simulate/solve/{sim_id}           — blocking CP-SAT solve
-GET  /simulate/solve-stream/{sim_id}    — SSE deep-solve (user opt-in)
+POST /simulate/solve/{sim_id}        — blocking fast solve (30s default)
+GET  /simulate/solve-stream/{sim_id} — SSE deep solve, warm-started from fast result
 GET  /simulate/{sim_id}
 
-Progressive solve flow
-----------------------
-1. POST /simulate/generate
-   → Response includes "complexity" block with estimated_seconds,
-     complexity_label, suggest_deep_solve.
-
-2. POST /simulate/solve/{sim_id}?time_limit_seconds=30
-   → Fast initial solve (Optimize Schedule button).
-   → Response includes snapshot.solve_metadata:
-       { status, is_optimal, gap_percent, elapsed_seconds, ... }
-   → If is_optimal=false AND suggest_deep_solve=true:
-       Frontend transforms button → "Continue solving with OR-Tools →"
-       and shows estimated_seconds as projected time.
-
-3. GET /simulate/solve-stream/{sim_id}?time_limit_seconds=300
-   → User opted in to deep solve.
-   → Streams SSE events:
-       { type: "progress", score, gap_percent, elapsed_seconds, snapshot }
-       { type: "done",     score, gap_percent, elapsed_seconds, snapshot, is_optimal }
-   → Frontend drives live clock and score counter from these events.
-   → On "done", if is_optimal=true: button returns to solved state.
-     If still feasible: offer another "Continue?" with longer limit.
+Deep solve architecture
+-----------------------
+- Fast solve (POST):  runs on snapshot_planned, 30s, finds feasible solution
+- Deep solve (GET SSE): runs on snapshot_planned again but warm-started from
+  the fast-solve result via AddHint — so CP-SAT skips re-finding feasibility
+  and spends ALL of the extended budget improving the objective.
+  This is why "Continue →Optimal" makes genuine progress.
 """
 from __future__ import annotations
 
-import copy
-import json
-import queue
-import threading
+import copy, json, threading, queue
 from datetime import datetime, timezone
 from typing import Dict
 from uuid import uuid4
@@ -64,171 +45,88 @@ app.add_middleware(
 simulations: Dict[str, dict] = {}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Health
-# ─────────────────────────────────────────────────────────────────────────────
-
 @app.get("/health")
 def health():
     return {
         "status": "ok",
         "solver": "cpsat" if cpsat._ORTOOLS else "greedy_fallback",
-        "default_time_limit_seconds": cpsat.DEFAULT_TIME_LIMIT_SEC,
+        "default_time_limit_seconds": cpsat.TIME_LIMIT_SEC,
     }
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Generate
-# ─────────────────────────────────────────────────────────────────────────────
 
 @app.post("/simulate/generate")
 def generate_simulation(profile: GeneratorProfile):
     simulation_id = str(uuid4())
     snapshot = build_snapshot_from_profile(profile)
-
-    # constraints_meta is the authoritative source for solver constraints.
-    # It is set once here from the profile and never overwritten by solve
-    # unless the frontend explicitly passes an override (e.g. num_rooms).
     snapshot["constraints_meta"] = {
         "allow_saturday": profile.allow_saturday,
         "allow_sunday":   profile.allow_sunday,
         "max_classroom":  profile.max_classroom,
         "num_rooms":      profile.num_rooms,
     }
-
-    complexity = cpsat.estimate_complexity(snapshot)
-
     obj = {
-        "simulation_id": simulation_id,
-        "status":        "generated",
-        "created_at":    datetime.now(timezone.utc).isoformat(),
-        "snapshot":      snapshot,
-        "complexity":    complexity,
+        "simulation_id":    simulation_id,
+        "status":           "generated",
+        "created_at":       datetime.now(timezone.utc).isoformat(),
+        "snapshot":         snapshot,
+        # Immutable original — deep solve always restarts from here
+        # so it has the full search space, not a pre-packed result
+        "snapshot_planned": copy.deepcopy(snapshot),
     }
     simulations[simulation_id] = obj
     return obj
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Complexity estimate (standalone — useful after parameter changes)
-# ─────────────────────────────────────────────────────────────────────────────
-
-@app.get("/simulate/complexity/{simulation_id}")
-def get_complexity(simulation_id: str):
-    """
-    Returns a fresh complexity estimate for a stored simulation.
-
-    Frontend uses this when:
-    - Displaying the complexity badge on the simulator page
-    - Deciding whether to show the "Continue solving?" prompt
-    - Showing projected solve time before the user opts in to deep solve
-    """
-    sim = simulations.get(simulation_id)
-    if sim is None:
-        return JSONResponse(status_code=404, content={"detail": "Simulation not found"})
-    return cpsat.estimate_complexity(sim["snapshot"])
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Blocking solve (fast initial — Optimize Schedule button)
-# ─────────────────────────────────────────────────────────────────────────────
-
 @app.post("/simulate/solve/{simulation_id}", response_model=None)
 def solve_simulation(
     simulation_id: str,
-    time_limit_seconds: float = Query(
-        default=30.0,
-        ge=5.0,
-        le=3600.0,
-        description="CP-SAT wall-clock time limit. Default 30s gives a fast feasible result. "
-                    "Pass a larger value for the deep-solve path.",
-    ),
-    num_rooms: int = Query(
-        default=0,
-        description="Override num_rooms constraint at solve time (1 or 2). "
-                    "0 means use whatever is in constraints_meta.",
-    ),
+    time_limit_seconds: float = Query(default=30.0, ge=5.0, le=3600.0),
+    num_rooms: int = Query(default=0),
 ):
-    """
-    Runs OR-Tools CP-SAT up to time_limit_seconds.
-
-    Response always includes snapshot.solve_metadata:
-        status           "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN"
-        is_optimal       bool  — True only when gap = 0 and proof complete
-        gap_percent      float — how far the solution is from proven optimum
-        elapsed_seconds  float
-        solutions_found  int
-
-    Frontend decision logic:
-        if is_optimal → show "Optimal ✓"
-        elif gap_percent < 5 → show "Near-optimal"
-        else → show "Continue solving with OR-Tools →" + estimated time
-    """
-    sim = simulations.get(simulation_id)
-    if sim is None:
+    """Fast blocking solve — typically 30s, returns best feasible result."""
+    if simulation_id not in simulations:
         return JSONResponse(status_code=404, content={"detail": "Simulation not found"})
 
+    sim      = simulations[simulation_id]
     snapshot = sim["snapshot"]
 
-    # Allow frontend to override num_rooms at solve time (e.g. room toggle)
     if num_rooms in (1, 2):
         snapshot.setdefault("constraints_meta", {})["num_rooms"] = num_rooms
 
     optimized = cpsat.optimize(snapshot, time_limit=time_limit_seconds)
-
     sim["snapshot"] = optimized
     sim["status"]   = "solved"
-    sim["complexity"] = cpsat.estimate_complexity(optimized)
     simulations[simulation_id] = sim
     return sim
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Streaming deep-solve (user opt-in after fast solve)
-# ─────────────────────────────────────────────────────────────────────────────
-
 @app.get("/simulate/solve-stream/{simulation_id}")
 def solve_stream(
     simulation_id: str,
-    time_limit_seconds: float = Query(
-        default=300.0,
-        ge=30.0,
-        le=3600.0,
-        description="How long to keep solving. Frontend passes complexity.estimated_seconds "
-                    "rounded up to the nearest sensible value.",
-    ),
+    time_limit_seconds: float = Query(default=300.0, ge=30.0, le=3600.0),
     num_rooms: int = Query(default=0),
 ):
     """
-    Server-Sent Events — streams each improved CP-SAT solution in real time.
+    SSE deep solve — streams each improving CP-SAT solution.
 
-    This is the deep-solve path the user opts into after the fast 30s solve
-    returns a feasible-but-not-optimal result.
-
-    Events
-    ------
-    { "type": "progress", "score": N, "gap_percent": F, "elapsed_seconds": F,
-      "solutions_found": N, "snapshot": {...} }
-
-    { "type": "done", "score": N, "gap_percent": F, "elapsed_seconds": F,
-      "is_optimal": bool, "solutions_found": N, "snapshot": {...} }
-
-    { "type": "timeout" }   — emitted if the queue stalls unexpectedly
-
-    Frontend behaviour
-    ------------------
-    - Open SSE connection when user clicks "Continue solving →"
-    - On each "progress" event: update score card, gap badge, elapsed clock
-    - On "done": stop clock, show final status badge (Optimal / Feasible)
-    - If done.is_optimal=false: optionally offer another "Continue?" round
+    Key behaviour:
+    - Solves from snapshot_planned (full search space, not pre-packed)
+    - Warm-starts from sim["snapshot"] (fast solve result) via AddHint
+      so CP-SAT immediately has a feasible starting point and spends
+      all of time_limit_seconds improving, not re-finding feasibility
+    - Stream timeout = time_limit_seconds + 30s grace
     """
-    sim = simulations.get(simulation_id)
-    if sim is None:
+    if simulation_id not in simulations:
         return JSONResponse(status_code=404, content={"detail": "Simulation not found"})
 
-    # Deep copy so the background solver doesn't mutate the stored snapshot
-    # until it is done — prevents partial states being served by GET /simulate/{id}
-    snap_copy = copy.deepcopy(sim["snapshot"])
+    sim = simulations[simulation_id]
+
+    # Base problem: original planned snapshot (full search space)
+    planned = sim.get("snapshot_planned") or sim["snapshot"]
+    snap_copy = copy.deepcopy(planned)
+
+    # Warm start: current best solution from fast solve
+    warm_start = copy.deepcopy(sim.get("snapshot"))
 
     if num_rooms in (1, 2):
         snap_copy.setdefault("constraints_meta", {})["num_rooms"] = num_rooms
@@ -236,57 +134,134 @@ def solve_stream(
     q: queue.Queue = queue.Queue()
 
     def callback(snap, score, elapsed, done=False):
-        meta = snap.get("solve_metadata", {})
         q.put({
-            "type":             "done" if done else "progress",
-            "score":            score,
-            "gap_percent":      meta.get("gap_percent"),
-            "elapsed_seconds":  round(elapsed, 2),
-            "is_optimal":       meta.get("is_optimal", False),
-            "solutions_found":  meta.get("solutions_found", 0),
-            "snapshot":         snap,
+            "type":     "done" if done else "progress",
+            "score":    score,
+            "elapsed":  round(elapsed, 3),
+            "snapshot": snap,
         })
 
     def run_solver():
-        result = cpsat.optimize_stream(snap_copy, callback, time_limit=time_limit_seconds)
-        # Commit final result to the store once the solver thread finishes
+        result = cpsat.optimize_stream(
+            snap_copy,
+            callback,
+            time_limit=time_limit_seconds,
+            warm_start_snapshot=warm_start,   # ← the key fix
+        )
         sim["snapshot"] = result
         sim["status"]   = "solved"
-        sim["complexity"] = cpsat.estimate_complexity(result)
         simulations[simulation_id] = sim
 
     threading.Thread(target=run_solver, daemon=True).start()
 
+    stream_timeout = time_limit_seconds + 30.0  # grace period after solver finishes
+
     def event_stream():
-        # Timeout is time_limit + 10s grace period
-        timeout = time_limit_seconds + 10.0
+        """
+        Streams events from the solver queue.
+        - "progress": solver found an improving solution (may never fire if warm-start is already good)
+        - "heartbeat": emitted every 5s so the frontend clock keeps ticking even with no improvement
+        - "done": solver finished — always carries the final best snapshot
+        - "timeout": stream timed out
+        """
+        elapsed_ticks = 0
         while True:
             try:
-                item = q.get(timeout=timeout)
+                # Poll every 5s max so we can send heartbeats
+                item = q.get(timeout=5.0)
                 yield f"data: {json.dumps(item, default=str)}\n\n"
                 if item["type"] == "done":
                     break
             except queue.Empty:
-                yield 'data: {"type":"timeout"}\n\n'
-                break
+                elapsed_ticks += 5
+                if elapsed_ticks >= stream_timeout:
+                    yield 'data: {"type":"timeout"}\n\n'
+                    break
+                # Heartbeat — tells frontend the solver is still running
+                hb = json.dumps({"type": "heartbeat", "elapsed": elapsed_ticks})
+                yield f"data: {hb}\n\n"
 
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control":    "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Get simulation
-# ─────────────────────────────────────────────────────────────────────────────
-
-@app.get("/simulate/{simulation_id}", response_model=None)
-def get_simulation(simulation_id: str):
+@app.get("/simulate/complexity/{simulation_id}")
+def get_complexity(simulation_id: str):
+    """Returns complexity estimate — used by frontend to size the deep-solve budget."""
     sim = simulations.get(simulation_id)
     if sim is None:
         return JSONResponse(status_code=404, content={"detail": "Simulation not found"})
-    return sim
+    snap = sim.get("snapshot_planned") or sim["snapshot"]
+    return _estimate_complexity(snap)
+
+
+def _estimate_complexity(snapshot: dict) -> dict:
+    import math
+    from math import ceil
+    placements = snapshot["placements"]
+    tm         = snapshot["time_model"]
+    meta       = snapshot.get("constraints_meta", {})
+    window_days   = tm["training_window_days"]
+    max_cls       = meta.get("max_classroom", 20)
+    num_rooms     = meta.get("num_rooms", 2)
+    from collections import defaultdict
+    course_enrolment: dict = defaultdict(set)
+    for p in placements:
+        course_enrolment[p["course_id"]].add(p["employee_id"])
+    num_courses   = len(course_enrolment)
+    total_enrol   = sum(len(v) for v in course_enrolment.values())
+    num_sessions  = sum(max(1, ceil(len(v) / max_cls)) for v in course_enrolment.values())
+    num_employees = len(set(p["employee_id"] for p in placements))
+
+    # Room pressure: tighter room cap = harder to pack
+    room_pressure = 1.0 + max(0, (num_sessions / max(num_rooms, 1) - 1) * 0.1)
+
+    # No-overlap factor: each employee with N courses adds N*(N-1)/2 no-overlap pairs.
+    # This is the dominant constraint cost added by AddNoOverlap.
+    avg_courses_per_emp = total_enrol / max(num_employees, 1)
+    nooverlap_factor = max(1.0, avg_courses_per_emp ** 1.8)
+
+    # Calibrated against observed solve times with AddNoOverlap enforced:
+    # k=0.006 gives ~30s for 91 sessions / 500 emp / 31-day window — matches reality
+    k   = 0.006
+    raw = k * (num_sessions ** 1.3) * math.log2(max(window_days, 2)) * room_pressure * nooverlap_factor
+    estimated_seconds = round(raw, 1)
+
+    if estimated_seconds <= 0:
+        score = 0
+    else:
+        log_s = math.log10(max(estimated_seconds, 0.1))
+        score = min(100, max(0, int(10 + (log_s / 3.56) * 90)))
+    if estimated_seconds < 10:   label, confidence = "Simple",        "high"
+    elif estimated_seconds < 30: label, confidence = "Moderate",       "high"
+    elif estimated_seconds < 120:label, confidence = "Complex",        "medium"
+    elif estimated_seconds < 600:label, confidence = "Very Complex",   "medium"
+    else:                        label, confidence = "Highly Complex", "low"
+    return {
+        "estimated_seconds":   estimated_seconds,
+        "complexity_score":    score,
+        "complexity_label":    label,
+        "confidence":          confidence,
+        "suggest_deep_solve":  estimated_seconds > 30,
+        "drivers": {
+            "num_employees":     num_employees,
+            "num_courses":       num_courses,
+            "num_sessions":      num_sessions,
+            "total_enrolments":  total_enrol,
+            "window_days":       window_days,
+            "max_classroom":     max_cls,
+            "num_rooms":         num_rooms,
+            "room_pressure":     round(room_pressure, 3),
+            "nooverlap_factor":  round(nooverlap_factor, 3),
+        },
+    }
+
+
+@app.get("/simulate/{simulation_id}", response_model=None)
+def get_simulation(simulation_id: str):
+    if simulation_id not in simulations:
+        return JSONResponse(status_code=404, content={"detail": "Simulation not found"})
+    return simulations[simulation_id]

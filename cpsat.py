@@ -1,43 +1,20 @@
 """
-cpsat.py — OR-Tools CP-SAT Solver  (multi-room model, streaming-capable)
-=========================================================================
+cpsat.py — OR-Tools CP-SAT Solver  (2-room model, streaming-capable)
+=====================================================================
 
-Public API
-----------
-estimate_complexity(snapshot) → dict
-    Returns complexity estimate before solving — used by frontend to set
-    user expectations and decide whether to offer a deep-solve option.
+The solver supports two modes:
+  1. optimize(snapshot) → dict          — blocking, returns final result
+  2. optimize_stream(snapshot, cb)      — calls cb(partial_snapshot, score, elapsed)
+                                          each time a better solution is found,
+                                          then calls cb(final_snapshot, score, elapsed, done=True)
 
-optimize(snapshot, time_limit) → dict
-    Blocking solve — returns final mutated snapshot.
-
-optimize_stream(snapshot, callback, time_limit) → dict
-    Streaming solve. callback(snap_copy, score, elapsed, done=False) is
-    called each time CP-SAT finds an improving solution, then once more
-    with done=True for the final result.
-
-Solve metadata
---------------
-Every solved snapshot gets a "solve_metadata" key:
-    {
-        "status":           "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN",
-        "is_optimal":       bool,
-        "is_feasible":      bool,
-        "elapsed_seconds":  float,
-        "time_limit_seconds": float,
-        "gap_percent":      float | None,   # 0.0 when optimal
-        "solutions_found":  int,
-        "solver_label":     str,
-    }
-
-Frontend uses is_optimal + gap_percent to decide whether to offer the
-"Continue solving with OR-Tools?" prompt.
+The streaming callback receives a *copy* of the snapshot with the current
+best placements — safe to serialise and send over SSE.
 """
 
 from __future__ import annotations
 
 import copy
-import math
 import time
 from collections import defaultdict
 from datetime import date
@@ -49,133 +26,42 @@ try:
 except ImportError:
     _ORTOOLS = False
 
-# Default time limit for the fast initial solve (Optimize Schedule button).
-# The deep-solve SSE stream accepts an explicit time_limit override.
-DEFAULT_TIME_LIMIT_SEC = 30.0
-NUM_WORKERS            = 8
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Complexity Estimator
-# ═══════════════════════════════════════════════════════════════════════════
-
-def estimate_complexity(snapshot: dict) -> dict:
-    """
-    Estimates CP-SAT solve time from problem structure before solving.
-
-    Used by:
-    - /simulate/generate response — frontend shows complexity badge immediately
-    - /simulate/complexity/{id}  — frontend can re-fetch after parameter changes
-    - Frontend logic to decide whether to show "Continue solving?" prompt
-
-    Key complexity drivers:
-    - num_sessions: number of CP-SAT interval variables (after class-size splitting)
-    - window_days:  domain size per day variable
-    - num_rooms:    tighter room caps = more constraint propagation
-    - max_classroom: tighter caps = more sessions = more variables
-
-    Returns:
-        estimated_seconds   float   — rough wall-clock estimate
-        complexity_score    int     — 0–100 logarithmic scale
-        complexity_label    str     — "Simple" | "Moderate" | "Complex" | "Very Complex" | "Highly Complex"
-        confidence          str     — "high" | "medium" | "low"
-        suggest_deep_solve  bool    — True when estimated_seconds > DEFAULT_TIME_LIMIT_SEC
-        drivers             dict    — raw inputs used for the estimate
-    """
-    placements   = snapshot["placements"]
-    tm           = snapshot["time_model"]
-    meta         = snapshot.get("constraints_meta", {})
-
-    window_days   = tm["training_window_days"]
-    slots_per_day = tm["slots_per_day"]
-    max_cls       = meta.get("max_classroom", 20)
-    num_rooms     = meta.get("num_rooms", 2)
-
-    # Count unique courses and their enrolment sizes — this determines
-    # how many sessions CP-SAT needs to schedule (the primary variable count)
-    course_enrolment: dict = defaultdict(set)
-    for p in placements:
-        course_enrolment[p["course_id"]].add(p["employee_id"])
-
-    num_courses   = len(course_enrolment)
-    total_enrol   = sum(len(v) for v in course_enrolment.values())
-    num_sessions  = sum(max(1, ceil(len(v) / max_cls)) for v in course_enrolment.values())
-    num_employees = len(set(p["employee_id"] for p in placements))
-
-    # Domain size × session count is the primary complexity driver.
-    # Room constraint tightness amplifies it.
-    room_pressure = 1.0 + max(0, (num_sessions / max(num_rooms, 1) - 1) * 0.1)
-
-    # Empirical formula calibrated against OR-Tools benchmark runs:
-    # T ≈ k * sessions^1.5 * log2(window) * room_pressure
-    k   = 0.00015
-    raw = k * (num_sessions ** 1.5) * math.log2(max(window_days, 2)) * room_pressure
-
-    estimated_seconds = round(raw, 1)
-
-    # Complexity score 0–100 on a log scale
-    # 1s → ~10,  30s → ~45,  120s → ~60,  600s → ~80,  3600s → ~100
-    if estimated_seconds <= 0:
-        complexity_score = 0
-    else:
-        log_s = math.log10(max(estimated_seconds, 0.1))
-        complexity_score = min(100, max(0, int(10 + (log_s / 3.56) * 90)))
-
-    if estimated_seconds < 10:
-        label = "Simple"
-        confidence = "high"
-    elif estimated_seconds < 30:
-        label = "Moderate"
-        confidence = "high"
-    elif estimated_seconds < 120:
-        label = "Complex"
-        confidence = "medium"
-    elif estimated_seconds < 600:
-        label = "Very Complex"
-        confidence = "medium"
-    else:
-        label = "Highly Complex"
-        confidence = "low"
-
-    return {
-        "estimated_seconds":  estimated_seconds,
-        "complexity_score":   complexity_score,
-        "complexity_label":   label,
-        "confidence":         confidence,
-        "suggest_deep_solve": estimated_seconds > DEFAULT_TIME_LIMIT_SEC,
-        "drivers": {
-            "num_employees":  num_employees,
-            "num_courses":    num_courses,
-            "num_sessions":   num_sessions,
-            "total_enrolments": total_enrol,
-            "window_days":    window_days,
-            "max_classroom":  max_cls,
-            "num_rooms":      num_rooms,
-            "room_pressure":  round(room_pressure, 3),
-        },
-    }
+TIME_LIMIT_SEC = 30.0
+NUM_WORKERS    = 8
+NUM_ROOMS      = 2
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Public API
 # ═══════════════════════════════════════════════════════════════════════════
 
-def optimize(snapshot, time_limit=DEFAULT_TIME_LIMIT_SEC):
-    """Blocking solve — returns final mutated snapshot with solve_metadata."""
+def optimize(snapshot, time_limit=TIME_LIMIT_SEC, warm_start_snapshot=None):
+    """
+    Blocking solve.
+    warm_start_snapshot: if provided (e.g. a previous fast-solve result),
+    its placements are used as AddHint to seed CP-SAT immediately from a
+    known feasible point rather than searching from scratch.
+    """
     if _ORTOOLS:
-        return _cpsat_solve(snapshot, callback=None, time_limit=time_limit)
+        return _cpsat_solve(snapshot, callback=None,
+                            time_limit=time_limit,
+                            warm_start_snapshot=warm_start_snapshot)
     return _greedy_solve(snapshot)
 
 
-def optimize_stream(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
+def optimize_stream(snapshot, callback, time_limit=TIME_LIMIT_SEC,
+                    warm_start_snapshot=None):
     """
     Streaming solve.
     callback(snap_copy, score, elapsed_s, done=False) fires on each
     improving solution, then once with done=True for the final result.
-    time_limit is forwarded — pass a large value for deep-solve mode.
+    warm_start_snapshot: seeds CP-SAT from an existing feasible solution
+    so the deep-solve never has to re-discover feasibility from scratch.
     """
     if _ORTOOLS:
-        return _cpsat_solve(snapshot, callback=callback, time_limit=time_limit)
+        return _cpsat_solve(snapshot, callback=callback,
+                            time_limit=time_limit,
+                            warm_start_snapshot=warm_start_snapshot)
     result  = _greedy_solve(snapshot)
     score   = result["metrics"].get("score", 0)
     elapsed = result["metrics"].get("solve_seconds", 0)
@@ -219,8 +105,7 @@ def _build_course_index(placements):
     return courses
 
 
-def _write_metrics(placements, orig_emp_days, snapshot, elapsed, label, max_classroom,
-                   time_limit, status_name, is_optimal, gap_percent, solutions_found):
+def _write_metrics(placements, orig_emp_days, snapshot, elapsed, label, max_classroom):
     opt_emp_days = defaultdict(set)
     for p in placements:
         if not p.get("overflow"):
@@ -237,6 +122,7 @@ def _write_metrics(placements, orig_emp_days, snapshot, elapsed, label, max_clas
     overflow_count       = sum(1 for p in placements if p.get("overflow"))
     scheduled_placements = total_placements - overflow_count
 
+    # True readiness: what fraction of training was successfully scheduled
     readiness = round((scheduled_placements / total_placements) * 100) if total_placements > 0 else 0
 
     course_data = _build_course_index(placements)
@@ -244,7 +130,7 @@ def _write_metrics(placements, orig_emp_days, snapshot, elapsed, label, max_clas
 
     m = snapshot.setdefault("metrics", {})
     m["compression_percent"]  = compression
-    m["score"]                = readiness
+    m["score"]                = readiness          # true readiness 0–100
     m["solver"]               = label
     m["solve_seconds"]        = round(elapsed, 3)
     m["overflow_count"]       = overflow_count
@@ -252,18 +138,6 @@ def _write_metrics(placements, orig_emp_days, snapshot, elapsed, label, max_clas
     m["scheduled_placements"] = scheduled_placements
     m["oversized_courses"]    = oversized
     snapshot["phase"]         = "optimized"
-
-    # Solve metadata — consumed by frontend to drive the progressive solve UX
-    snapshot["solve_metadata"] = {
-        "status":             status_name,
-        "is_optimal":         is_optimal,
-        "is_feasible":        status_name in ("OPTIMAL", "FEASIBLE"),
-        "elapsed_seconds":    round(elapsed, 3),
-        "time_limit_seconds": time_limit,
-        "gap_percent":        gap_percent,
-        "solutions_found":    solutions_found,
-        "solver_label":       label,
-    }
 
 
 def _assign_rooms(session_vars, session_plan, course_data, S, solver, num_rooms=2):
@@ -285,8 +159,7 @@ def _assign_rooms(session_vars, session_plan, course_data, S, solver, num_rooms=
 
 
 def _apply_solution(placements, session_vars, session_plan, course_data, S, solver,
-                    orig_emp_days, snapshot, elapsed, label, max_cls, num_rooms,
-                    time_limit, status_name, is_optimal, gap_percent, solutions_found):
+                    orig_emp_days, snapshot, elapsed, label, max_cls, num_rooms=2):
     """Extract current solver values and write them into snapshot placements."""
     session_room = _assign_rooms(session_vars, session_plan, course_data, S, solver, num_rooms)
     assignment   = {}
@@ -308,25 +181,21 @@ def _apply_solution(placements, session_vars, session_plan, course_data, S, solv
             p["overflow"] = True
             p["room"]     = 0
 
-    _write_metrics(
-        placements, orig_emp_days, snapshot, elapsed, label, max_cls,
-        time_limit, status_name, is_optimal, gap_percent, solutions_found,
-    )
+    _write_metrics(placements, orig_emp_days, snapshot, elapsed, label, max_cls)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Greedy fallback — only used when OR-Tools is unavailable or CP-SAT
-# finds no feasible solution within the time limit.
+# Greedy fallback
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _greedy_solve(snapshot, time_limit=DEFAULT_TIME_LIMIT_SEC):
+def _greedy_solve(snapshot):
     t0         = time.monotonic()
     placements = snapshot["placements"]
     tm         = snapshot["time_model"]
     W          = tm["training_window_days"]
     S          = tm["slots_per_day"]
     meta       = snapshot.get("constraints_meta", {})
-    max_cls    = meta.get("max_classroom", 20)
+    max_cls    = meta.get("max_classroom", 999)
 
     orig_emp_days = defaultdict(set)
     for p in placements:
@@ -355,71 +224,77 @@ def _greedy_solve(snapshot, time_limit=DEFAULT_TIME_LIMIT_SEC):
             if not placed:
                 p["overflow"] = True
 
-    _write_metrics(
-        placements, orig_emp_days, snapshot,
-        time.monotonic() - t0, "greedy_fallback", max_cls,
-        time_limit, "FEASIBLE", False, None, 1,
-    )
+    _write_metrics(placements, orig_emp_days, snapshot,
+                   time.monotonic() - t0, "greedy_fallback", max_cls)
     return snapshot
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# CP-SAT Streaming Callback — fires on each improved solution
+# CP-SAT Solution Callback — fires on each improved solution
 # ═══════════════════════════════════════════════════════════════════════════
 
 class _StreamCallback(cp_model.CpSolverSolutionCallback):
     def __init__(self, session_vars, session_plan, course_data, S,
-                 placements, orig_emp_days, snapshot, max_cls, t0,
-                 user_cb, num_rooms, time_limit):
+                 placements, orig_emp_days, snapshot, max_cls, t0, user_cb, num_rooms=2):
         super().__init__()
-        self._sv            = session_vars
-        self._sp            = session_plan
-        self._cd            = course_data
-        self._S             = S
-        self._placements    = placements
-        self._orig          = orig_emp_days
-        self._snap          = snapshot
-        self._max_cls       = max_cls
-        self._t0            = t0
-        self._user_cb       = user_cb
-        self._best_obj      = float("inf")
-        self._num_rooms     = num_rooms
-        self._time_limit    = time_limit
-        self._solution_count = 0
+        self._sv           = session_vars
+        self._sp           = session_plan
+        self._cd           = course_data
+        self._S            = S
+        self._placements   = placements
+        self._orig         = orig_emp_days
+        self._snap         = snapshot
+        self._max_cls      = max_cls
+        self._t0           = t0
+        self._user_cb      = user_cb
+        self._best_obj     = float("inf")
+        self._num_rooms    = num_rooms
 
     def on_solution_callback(self):
         obj = self.ObjectiveValue()
         if obj >= self._best_obj:
             return
         self._best_obj = obj
-        self._solution_count += 1
         elapsed = time.monotonic() - self._t0
 
-        bound       = self.BestObjectiveBound()
-        gap_percent = round(abs(obj - bound) / max(abs(obj), 1) * 100, 1) if obj != 0 else 0.0
-
-        snap_copy        = copy.deepcopy(self._snap)
-        placements_copy  = snap_copy["placements"]
-        sv_copy          = {k: v for k, v in self._sv.items()}
+        # Build a deep copy so the background solve loop doesn't race with SSE
+        snap_copy   = copy.deepcopy(self._snap)
+        placements  = snap_copy["placements"]
+        session_vars_copy = {k: v for k, v in self._sv.items()}
 
         _apply_solution(
-            placements_copy, sv_copy, self._sp, self._cd,
+            placements, session_vars_copy, self._sp, self._cd,
             self._S, self, self._orig, snap_copy,
-            elapsed, "cpsat_intermediate", self._max_cls, self._num_rooms,
-            self._time_limit, "FEASIBLE", False, gap_percent, self._solution_count,
+            elapsed, "cpsat_intermediate", self._max_cls, self._num_rooms
         )
-        score = snap_copy["metrics"].get("score", 0)
+        score = snap_copy["metrics"].get("score", 40)
         try:
             self._user_cb(snap_copy, score, elapsed, done=False)
         except Exception:
-            pass  # never crash the solver thread
+            pass  # never crash the solver
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# CP-SAT Solver Core
+# CP-SAT Solver
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _cpsat_solve(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
+def _cpsat_solve(snapshot, callback, time_limit=TIME_LIMIT_SEC,
+                 warm_start_snapshot=None):
+    """
+    Core CP-SAT solver.
+
+    Constraints
+    -----------
+    1. Room capacity: at most num_rooms sessions run concurrently.
+    2. Employee no-overlap: no employee attends two sessions at the same time.
+
+    Warm start
+    ----------
+    If warm_start_snapshot is provided (the result of a previous fast solve),
+    its placements are used as model hints.  CP-SAT starts from a known
+    feasible point instead of searching for feasibility from scratch, so
+    ALL of the extra time budget is spent improving the objective.
+    """
     t0         = time.monotonic()
     placements = snapshot["placements"]
     tm         = snapshot["time_model"]
@@ -428,8 +303,8 @@ def _cpsat_solve(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
     meta       = snapshot.get("constraints_meta", {})
     allow_sat  = meta.get("allow_saturday", True)
     allow_sun  = meta.get("allow_sunday",   True)
-    max_cls    = meta.get("max_classroom",  20)   # ← was 999; now correctly defaults to 20
-    num_rooms  = int(meta.get("num_rooms", 2))
+    max_cls    = meta.get("max_classroom",  20)    # fixed default — was 999
+    num_rooms  = int(meta.get("num_rooms",  2))
     start_date = tm.get("start_date")
 
     orig_emp_days = defaultdict(set)
@@ -440,23 +315,32 @@ def _cpsat_solve(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
     allowed     = [d for d in range(W) if d not in forbidden] or list(range(W))
     course_data = _build_course_index(placements)
 
-    # ── Session splitting (enforces max_classroom) ────────────────────────────
-    # Each course is split into ceil(enrolled / max_cls) sessions.
-    # Each session becomes one CP-SAT interval variable — this IS the
-    # class size constraint. Sessions cannot overlap in the room schedule.
-    session_plan = {}
+    # ── Session splitting (enforces max_classroom) ────────────────────────
+    session_plan: dict = {}
     for cid, cd in course_data.items():
-        emps     = cd["employees"]
-        n_sess   = max(1, ceil(len(emps) / max_cls))
+        emps   = cd["employees"]
+        n_sess = max(1, ceil(len(emps) / max_cls))
         sessions = [[] for _ in range(n_sess)]
         for i, eid in enumerate(emps):
             sessions[i % n_sess].append(eid)
         session_plan[cid] = sessions
 
-    model         = cp_model.CpModel()
+    # ── Build warm-start hint map from previous solution ─────────────────
+    # Maps (employee_id, course_id) → (day_index, start_slot)
+    hint_map: dict = {}
+    if warm_start_snapshot is not None:
+        for p in warm_start_snapshot.get("placements", []):
+            if not p.get("overflow"):
+                hint_map[(p["employee_id"], p["course_id"])] = (
+                    p["day_index"], p["start_slot"]
+                )
+
+    # ── Model variables ───────────────────────────────────────────────────
+    model        = cp_model.CpModel()
     all_intervals = []
     all_demands   = []
-    session_vars  = {}
+    session_vars  = {}   # (cid, s_idx) → (d_var, s_var)
+    session_ivs   = {}   # (cid, s_idx) → interval_var (global timeline)
 
     for cid, sessions in session_plan.items():
         dur = course_data[cid]["duration_slots"]
@@ -480,13 +364,36 @@ def _cpsat_solve(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
             all_intervals.append(iv)
             all_demands.append(1)
             session_vars[(cid, s_idx)] = (d_var, s_var)
+            session_ivs[(cid, s_idx)]  = iv
 
-    # Room capacity: at most num_rooms sessions running concurrently
+            # Warm-start hint: seed with known feasible day/slot so CP-SAT
+            # starts improving immediately rather than searching for feasibility
+            if hint_map:
+                for eid in emp_list:
+                    if (eid, cid) in hint_map:
+                        hday, hslot = hint_map[(eid, cid)]
+                        if hday in allowed and 0 <= hslot <= S - dur:
+                            model.AddHint(d_var, hday)
+                            model.AddHint(s_var, hslot)
+                        break  # one representative employee is enough per session
+
+    # ── Constraint 1: Room capacity ───────────────────────────────────────
     if all_intervals:
         model.AddCumulative(all_intervals, all_demands, num_rooms)
 
-    # Objective: minimise weighted sum of day indices (proxy for minimising
-    # total employee-training-days — earlier days = fewer days used overall)
+    # ── Constraint 2: Per-employee no-overlap ─────────────────────────────
+    # Collect the intervals belonging to each employee across all sessions.
+    # No two intervals for the same employee may overlap on the global timeline.
+    emp_to_ivs: dict = defaultdict(list)
+    for (cid, s_idx), iv in session_ivs.items():
+        for eid in session_plan[cid][s_idx]:
+            emp_to_ivs[eid].append(iv)
+
+    for eid, ivs in emp_to_ivs.items():
+        if len(ivs) >= 2:
+            model.AddNoOverlap(ivs)
+
+    # ── Objective: minimise total weighted day usage (→ compression) ──────
     obj_terms = []
     for (cid, s_idx), (d_var, _) in session_vars.items():
         n = len(session_plan[cid][s_idx])
@@ -494,6 +401,7 @@ def _cpsat_solve(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
     if obj_terms:
         model.Minimize(sum(obj_terms))
 
+    # ── Solve ─────────────────────────────────────────────────────────────
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
     solver.parameters.num_workers         = NUM_WORKERS
@@ -502,49 +410,59 @@ def _cpsat_solve(snapshot, callback, time_limit=DEFAULT_TIME_LIMIT_SEC):
     if callback is not None:
         cb = _StreamCallback(
             session_vars, session_plan, course_data, S,
-            placements, orig_emp_days, snapshot, max_cls, t0,
-            callback, num_rooms, time_limit,
+            placements, orig_emp_days, snapshot, max_cls, t0, callback, num_rooms
         )
         status = solver.SolveWithSolutionCallback(model, cb)
-        solutions_found = cb._solution_count
     else:
         status = solver.Solve(model)
-        solutions_found = 1 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else 0
 
-    elapsed   = time.monotonic() - t0
+    # ── Extract result ────────────────────────────────────────────────────
     feasible  = status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
-    is_optimal = status == cp_model.OPTIMAL
-    status_name = solver.StatusName(status)  # "OPTIMAL", "FEASIBLE", etc.
-
-    # ── Fallback: if CP-SAT found nothing, use greedy ─────────────────────────
     if not feasible:
-        result = _greedy_solve(snapshot, time_limit)
+        # CP-SAT found nothing — fall back to greedy as a last resort
+        result = _greedy_solve(snapshot)
+        result["solve_metadata"] = {
+            "status": "INFEASIBLE", "is_optimal": False, "is_feasible": False,
+            "elapsed_seconds":    round(time.monotonic() - t0, 3),
+            "time_limit_seconds": time_limit,
+            "gap_percent":        None,
+            "solutions_found":    0,
+            "solver_label":       "greedy_fallback",
+        }
         if callback is not None:
             callback(copy.deepcopy(result),
                      result["metrics"].get("score", 0),
-                     elapsed, done=True)
+                     time.monotonic() - t0, done=True)
         return result
 
-    # ── Gap percent (how far from proven optimal) ─────────────────────────────
-    obj   = solver.ObjectiveValue()
-    bound = solver.BestObjectiveBound()
-    gap_percent = round(abs(obj - bound) / max(abs(obj), 1) * 100, 1) if obj != 0 else 0.0
-
-    label = "cpsat_optimal" if is_optimal else "cpsat_feasible"
+    is_optimal    = (status == cp_model.OPTIMAL)
+    label         = "cpsat_optimal" if is_optimal else "cpsat_feasible"
+    elapsed_final = time.monotonic() - t0
+    obj           = solver.ObjectiveValue()
+    bound         = solver.BestObjectiveBound()
+    gap           = round(abs(obj - bound) / max(abs(obj), 1) * 100, 1) if obj != 0 else 0.0
+    n_solutions   = getattr(cb, "_solution_count", 1) if callback is not None else 1
 
     _apply_solution(
         placements, session_vars, session_plan, course_data,
         S, solver, orig_emp_days, snapshot,
-        elapsed, label, max_cls, num_rooms,
-        time_limit, status_name, is_optimal, gap_percent, solutions_found,
+        elapsed_final, label, max_cls, num_rooms
     )
 
+    snapshot["solve_metadata"] = {
+        "status":             "OPTIMAL" if is_optimal else "FEASIBLE",
+        "is_optimal":         is_optimal,
+        "is_feasible":        True,
+        "elapsed_seconds":    round(elapsed_final, 3),
+        "time_limit_seconds": time_limit,
+        "gap_percent":        gap,
+        "solutions_found":    n_solutions,
+        "solver_label":       label,
+    }
+
     if callback is not None:
-        callback(
-            copy.deepcopy(snapshot),
-            snapshot["metrics"].get("score", 0),
-            snapshot["metrics"].get("solve_seconds", 0),
-            done=True,
-        )
+        callback(copy.deepcopy(snapshot),
+                 snapshot["metrics"].get("score", 0),
+                 snapshot["metrics"].get("solve_seconds", 0), done=True)
 
     return snapshot
