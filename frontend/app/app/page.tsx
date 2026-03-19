@@ -55,16 +55,19 @@ const DS = {
 interface TimeModel { day_start_hour:number; day_end_hour:number; slot_minutes:number; slots_per_day:number; training_window_days:number; start_date?:string; }
 interface Placement { id:string; employee_id:string; course_id:string; day_index:number; start_slot:number; duration_slots:number; overflow:boolean; room?:number; }
 interface Node { id:string; type:string; label:string; shift_name?:string; shift_hours?:string; shift_days?:string; }
-interface Metrics { score:number; compression_percent:number; remaining_hours:number; estimated_manual_hours?:number; solver?:string; }
-interface Snapshot { nodes:Node[]; constraints:unknown[]; placements:Placement[]; metrics:Metrics; phase:"planned"|"optimized"; time_model:TimeModel; }
-interface Simulation { simulation_id:string; status:string; snapshot:Snapshot; }
+interface Metrics { score:number; compression_percent:number; remaining_hours:number; estimated_manual_hours?:number; solver?:string; overflow_count?:number; total_placements?:number; scheduled_placements?:number; }
+interface SolveMetadata { status:string; is_optimal:boolean; is_feasible:boolean; elapsed_seconds:number; time_limit_seconds:number; gap_percent:number|null; solutions_found:number; solver_label:string; }
+interface Complexity { estimated_seconds:number; complexity_score:number; complexity_label:string; confidence:string; suggest_deep_solve:boolean; drivers:Record<string,number>; }
+interface Snapshot { nodes:Node[]; constraints:unknown[]; placements:Placement[]; metrics:Metrics; phase:"planned"|"optimized"; time_model:TimeModel; solve_metadata?:SolveMetadata; }
+interface Simulation { simulation_id:string; status:string; snapshot:Snapshot; complexity?:Complexity; }
 interface GridCell { employeeIds:string[]; empCourse:Record<string,string>; items:Placement[]; }
 interface Projection { grid:GridCell[][]; roomGrids:[GridCell[][],GridCell[][]]; maxEmpPerCell:number; maxEmpPerLane:number; overflowCount:number; days:number; groups:number; nodeMap:Record<string,Node>; empToCells:Record<string,string[]>; empPlacements:Record<string,Placement[]>; }
 type Status = "idle"|"generating"|"generated"|"solving"|"solved"|"error";
 interface Tooltip { empId:string; name:string; courseName:string; durationH:number; x:number; y:number; }
 
 const API  = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const SOLVE_LIMIT_S = 30; // solver time limit in seconds
+const SOLVE_LIMIT_S      = 30;   // fast initial solve time limit
+const DEEP_SOLVE_LIMIT_S = 300;  // deep solve (user opt-in) time limit
 const SOLVER_MESSAGES = [
   "Initialising constraint model…",
   "Mapping employee-to-course relationships…",
@@ -1066,6 +1069,10 @@ export default function WorkforceSim(){
   const [compH,    setCompH]    = useState<number[]>([0]);
   const [scoreFlash,   setScoreFlash]   = useState(false); // post-solve attention pulse
   const [showOverflowPanel, setShowOverflowPanel] = useState(false);
+  const [complexity,   setComplexity]   = useState<Complexity|null>(null);
+  const [solveMetadata, setSolveMetadata] = useState<SolveMetadata|null>(null);
+  const [deepSolving,  setDeepSolving]  = useState(false);  // true while SSE deep-solve is running
+  const currentTimeLimitRef = useRef<number>(SOLVE_LIMIT_S); // tracks actual time limit for countdown
   const [zoom,     setZoom]     = useState(1);   // 0.5 | 1 | 1.5 | 2 | 3
   const [numTrainers, setNumTrainers] = useState<1|2>(1); // 1 or 2 rooms/trainers
   const [simNumTrainers, setSimNumTrainers] = useState<1|2>(1); // what was used when simulated
@@ -1079,7 +1086,7 @@ export default function WorkforceSim(){
   },[t0,t1]);
 
   // solveDisplay returns a bare number string; the tile renders the unit separately
-  const solveProgress = t0&&!t1 ? Math.min(1, live/(SOLVE_LIMIT_S*1000)) : undefined;
+  const solveProgress = t0&&!t1 ? Math.min(1, live/(currentTimeLimitRef.current*1000)) : undefined;
   const solverMsgIdx  = t0&&!t1 ? Math.min(SOLVER_MESSAGES.length-1, Math.floor((live/1000)/2.2)) : -1;
   const solverMsg     = solverMsgIdx>=0 ? SOLVER_MESSAGES[solverMsgIdx] : null;
   const solveDisplay=useMemo(()=>{
@@ -1088,7 +1095,7 @@ export default function WorkforceSim(){
       return s<60?`${s.toFixed(1)}`:`${Math.floor(s/60)}m${Math.round(s%60)}`;
     }
     if(t0&&!t1){
-      const remaining=Math.max(0, SOLVE_LIMIT_S*1000-live)/1000;
+      const remaining=Math.max(0, currentTimeLimitRef.current*1000-live)/1000;
       return `${remaining.toFixed(1)}`;
     }
     return "—";
@@ -1314,6 +1321,11 @@ export default function WorkforceSim(){
       data.snapshot=filterWeekendPlacements(data.snapshot,prof.allow_saturday,prof.allow_sunday);
       setSim(data);
       setSimNumTrainers(numTrainers);
+      // Fetch complexity estimate for this simulation
+      try {
+        const cxRes = await fetch(`${API}/simulate/complexity/${data.simulation_id}`);
+        if (cxRes.ok) setComplexity(await cxRes.json());
+      } catch { /* non-fatal */ }
       const sc=data.snapshot?.metrics?.score??0;
       setScoreH(h=>[...h.slice(-9),sc]);
       setStatus("generated");
@@ -1323,14 +1335,16 @@ export default function WorkforceSim(){
 
   const solve=async()=>{
     if(!sim) return;
-    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving");
+    currentTimeLimitRef.current = SOLVE_LIMIT_S;
+    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving"); setSolveMetadata(null); setDeepSolving(false);
     try{
-      const res=await fetch(`${API}/simulate/solve/${sim.simulation_id}?num_rooms=${numTrainers}`,{method:"POST"});
+      const res=await fetch(`${API}/simulate/solve/${sim.simulation_id}?num_rooms=${numTrainers}&time_limit_seconds=${SOLVE_LIMIT_S}`,{method:"POST"});
       if(!res.ok) throw new Error();
       setT1(Date.now());
       const data:Simulation=await res.json();
       data.snapshot=filterWeekendPlacements(data.snapshot,prof.allow_saturday,prof.allow_sunday);
       setSim(data);
+      setSolveMetadata(data.snapshot.solve_metadata??null);
       const sc=data.snapshot?.metrics?.score??0;
       const co=data.snapshot?.metrics?.compression_percent??0;
       setScoreH(h=>[...h.slice(-9),sc]);
@@ -1338,16 +1352,63 @@ export default function WorkforceSim(){
       setStatus("solved");
       startAnim();
       setScoreFlash(true);
-      setSidecar(false);   // auto-close parameter panel
-      setZoom(2);          // zoom to 2× so schedule is immediately readable
+      setSidecar(false);
+      setZoom(2);
       setTimeout(()=>setScoreFlash(false), 2800);
     }catch{setT1(Date.now());setStatus("error");}
+  };
+
+  // Deep solve — user opts in after fast feasible result. Streams improving solutions via SSE.
+  const deepSolveEsRef = useRef<EventSource|null>(null);
+
+  const stopDeepSolve = () => {
+    if(deepSolveEsRef.current){ deepSolveEsRef.current.close(); deepSolveEsRef.current=null; }
+    setT1(Date.now()); setStatus("solved"); setDeepSolving(false);
+  };
+
+  const deepSolve=async()=>{
+    if(!sim||deepSolving) return;
+    setDeepSolving(true);
+    const timeLimit=Math.max(DEEP_SOLVE_LIMIT_S, Math.ceil(complexity?.estimated_seconds??DEEP_SOLVE_LIMIT_S));
+    currentTimeLimitRef.current = timeLimit;
+    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving");
+    try{
+      const es=new EventSource(`${API}/simulate/solve-stream/${sim.simulation_id}?time_limit_seconds=${timeLimit}&num_rooms=${numTrainers}`);
+      deepSolveEsRef.current = es;
+      es.onmessage=(ev)=>{
+        try{
+          const item=JSON.parse(ev.data);
+          if(item.type==="progress"&&item.snapshot){
+            const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
+            setSim(s=>s?{...s,snapshot:snap}:s);
+            setSolveMetadata(snap.solve_metadata??null);
+            startAnim();
+          }
+          if(item.type==="done"){
+            es.close(); setT1(Date.now());
+            if(item.snapshot){
+              const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
+              setSim(s=>s?{...s,snapshot:snap}:s);
+              setSolveMetadata(snap.solve_metadata??null);
+              setScoreH(h=>[...h.slice(-9),snap.metrics?.score??0]);
+              setCompH(h=>[...h.slice(-9),snap.metrics?.compression_percent??0]);
+            }
+            setStatus("solved"); setDeepSolving(false); startAnim();
+            setScoreFlash(true); setTimeout(()=>setScoreFlash(false),2800);
+          }
+          if(item.type==="timeout"||item.type==="error"){
+            es.close(); setT1(Date.now()); setStatus("solved"); setDeepSolving(false);
+          }
+        }catch{/*ignore*/}
+      };
+      es.onerror=()=>{ es.close(); setT1(Date.now()); setStatus("solved"); setDeepSolving(false); };
+    }catch{ setT1(Date.now()); setStatus("error"); setDeepSolving(false); }
   };
 
   const snap=sim?.snapshot, m=snap?.metrics, tm=snap?.time_model;
   const isOpt=snap?.phase==="optimized";
   const useTwoLanesUI=isOpt&&numTrainers===2;
-  const isActive=["generating","solving"].includes(status);
+  const isActive=["generating","solving"].includes(status)||deepSolving;
   const selData=selCell&&proj?(useTwoLanesUI?proj.roomGrids[selCell.room??0][selCell.day]?.[selCell.group]:proj.grid[selCell.day]?.[selCell.group]):null;
 
   const dayInfos=useMemo(()=>{
@@ -1455,8 +1516,13 @@ export default function WorkforceSim(){
               unit={solveDisplay==="—"?undefined:"s"}
               progress={solveProgress}
               color={DS.z500} accent={DS.z300}
-              sub={m?.solver==="cpsat_optimal"?"✓ Optimal":m?.solver==="cpsat_feasible"?"~ Feasible":m?.solver==="greedy_fallback"?"↯ Greedy":undefined}
-              tooltip="The wall-clock time taken by the Google OR-Tools CP-SAT solver to find the optimal (or best feasible) schedule. The solver runs for up to 30 seconds. 'cpsat_optimal' means a proven best solution was found; 'cpsat_feasible' means the best solution found within the time limit — still far superior to manual scheduling."/>
+              sub={
+                deepSolving ? "⟳ Deep solving…" :
+                m?.solver==="cpsat_optimal" ? "✓ Optimal" :
+                m?.solver==="cpsat_feasible" ? "~ Feasible — not yet proven optimal" :
+                undefined
+              }
+              tooltip="The wall-clock time taken by the Google OR-Tools CP-SAT solver to find the optimal (or best feasible) schedule. The solver runs for up to 30 seconds initially. 'cpsat_optimal' means a proven best solution was found; 'cpsat_feasible' means the best solution found within the time limit — click Continue →Optimal in the dock to keep solving."/>
             <MetricTile label="Readiness Score"
               display={m?.score??0} unit="%" spark={scoreH} color={DS.i500} accent={DS.i400}
               flash={scoreFlash}
@@ -1917,6 +1983,55 @@ export default function WorkforceSim(){
               </div>
             )}
 
+            {/* Complexity badge — shown after generate, before solve */}
+            {complexity&&status==="generated"&&(
+              <div style={{padding:"10px 12px",background:"rgba(238,242,255,0.65)",border:`1px solid ${DS.i100}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>Problem Complexity</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:13,color:DS.z900,fontWeight:700}}>{complexity.complexity_label}</span>
+                  <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:DS.z500,background:"rgba(255,255,255,0.7)",padding:"2px 7px",borderRadius:6,border:`1px solid ${DS.z200}`}}>~{complexity.estimated_seconds.toFixed(0)}s</span>
+                </div>
+                <div style={{height:3,background:"rgba(0,0,0,0.08)",borderRadius:2,overflow:"hidden",marginBottom:6}}>
+                  <div style={{height:"100%",width:`${complexity.complexity_score}%`,background:`linear-gradient(90deg,${DS.t400},${DS.i500})`,borderRadius:2}}/>
+                </div>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.z600,lineHeight:1.6}}>
+                  {complexity.drivers.num_sessions} sessions · {complexity.drivers.num_employees} employees · {complexity.drivers.window_days}-day window
+                </div>
+                {complexity.suggest_deep_solve&&(
+                  <div style={{marginTop:6,padding:"5px 8px",background:"rgba(99,102,241,0.08)",border:`1px solid ${DS.i200}`,borderRadius:7}}>
+                    <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.i700,lineHeight:1.5}}>
+                      ⚡ Complex problem — the 30s fast solve may return a <em>feasible</em> result. Use <strong>Continue →Optimal</strong> after optimising for a proven best solution.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Post-solve feasible prompt — shown when result is not yet optimal */}
+            {status==="solved"&&solveMetadata&&!solveMetadata.is_optimal&&!deepSolving&&(
+              <div style={{padding:"10px 12px",background:"rgba(245,243,255,0.80)",border:`1px solid ${DS.i200}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.i600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>Result: Feasible</div>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.6,marginBottom:8}}>
+                  The 30s solve found a good schedule but hasn't proven it's the <em>best possible</em>.
+                  {solveMetadata.gap_percent!=null&&<> The solution is within <strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong> of optimal.</>}
+                </div>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:9,color:DS.z600,lineHeight:1.5}}>
+                  Click <strong style={{color:DS.i600}}>Continue →Optimal</strong> in the dock to keep solving
+                  {complexity&&<> for up to <strong>~{Math.round(complexity.estimated_seconds)}s</strong></>} until a proven optimal solution is found.
+                </div>
+              </div>
+            )}
+
+            {/* Optimal result confirmation */}
+            {status==="solved"&&solveMetadata?.is_optimal&&(
+              <div style={{padding:"10px 12px",background:"rgba(240,253,250,0.80)",border:`1px solid ${DS.t400}55`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
+                <div style={{fontFamily:"'Geist Mono',monospace",fontSize:8,color:DS.t600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:5}}>✓ Optimal Solution</div>
+                <div style={{fontFamily:"'Geist',system-ui,sans-serif",fontSize:10,color:DS.z700,lineHeight:1.6}}>
+                  CP-SAT has mathematically proven this is the best possible schedule. No better solution exists within these constraints.
+                </div>
+              </div>
+            )}
+
             {/* How-to hint when nothing is selected */}
             {!selCell&&!selEmp&&(
               <div style={{padding:"12px",background:"rgba(238,242,255,0.65)",border:`1px solid ${DS.i100}`,borderRadius:12}}>
@@ -1967,11 +2082,48 @@ export default function WorkforceSim(){
         </div>
 
         {/* Ghost btn */}
-        <DockBtn label="◌  Simulate Data"     onClick={generate} disabled={isActive} ghost/>
+        <DockBtn label="◌  Simulate Data" onClick={generate} disabled={isActive} ghost/>
         {/* Divider */}
         <div style={{width:1,height:24,background:DS.z150}}/>
-        <DockBtn label="⚡  Optimize Schedule" onClick={solve} disabled={!sim||isActive} wide/>
 
+        {/* PRIMARY ACTION BUTTON — transforms based on state */}
+        {deepSolving ? (
+          // While deep-solving: show "Good enough, stop here" button
+          <DockBtn
+            label={
+              <span style={{display:"flex",alignItems:"center",gap:7}}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:"white",display:"inline-block",animation:"wrs-pulse 1s infinite",flexShrink:0}}/>
+                <span>Good enough — stop here</span>
+              </span>
+            }
+            onClick={stopDeepSolve}
+            wide
+          />
+        ) : status==="solved" && solveMetadata && !solveMetadata.is_optimal ? (
+          // After feasible solve: show Continue →Optimal with estimated time
+          <DockBtn
+            label={
+              <span style={{display:"flex",alignItems:"center",gap:7}}>
+                <span>⏳ Continue →Optimal</span>
+                {complexity&&(
+                  <span style={{
+                    fontFamily:"'Geist Mono',monospace",fontSize:9,
+                    opacity:0.75,fontWeight:400,
+                    background:"rgba(255,255,255,0.20)",
+                    padding:"1px 6px",borderRadius:5,
+                  }}>
+                    ~{Math.round(complexity.estimated_seconds)}s
+                  </span>
+                )}
+              </span>
+            }
+            onClick={deepSolve}
+            wide
+          />
+        ) : (
+          // Default: Optimize Schedule
+          <DockBtn label="⚡  Optimize Schedule" onClick={solve} disabled={!sim||isActive} wide/>
+        )}
 
       </div>
 
