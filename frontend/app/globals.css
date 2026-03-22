@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0A0A0F;
+  --background: #030308;
   --foreground: #F4F4F5;
   --muted: #71717A;
   --muted-foreground: #A1A1AA;
   --card: rgba(255, 255, 255, 0.05);
   --card-border: rgba(255, 255, 255, 0.08);
-  --indigo: #6366F1;
-  --teal: #14B8A6;
+  --violet: #8B5CF6;
+  --cyan: #06B6D4;
+  --pink: #EC4899;
 }
 
 @theme inline {
@@ -18,8 +19,9 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-card: var(--card);
   --color-card-border: var(--card-border);
-  --color-indigo: var(--indigo);
-  --color-teal: var(--teal);
+  --color-violet: var(--violet);
+  --color-cyan: var(--cyan);
+  --color-pink: var(--pink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -28,6 +30,22 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom cursor styles */
+.cursor-none {
+  cursor: none;
+}
+
+@media (max-width: 768px) {
+  .cursor-none {
+    cursor: auto;
+  }
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
 }
 
 @keyframes fade-in-up {
