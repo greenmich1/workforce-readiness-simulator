@@ -1,36 +1,37 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030308;
-  --foreground: #F4F4F5;
-  --card: #0A0A0F;
-  --card-border: rgba(255, 255, 255, 0.05);
-  --muted: rgba(255, 255, 255, 0.4);
-  --muted-foreground: rgba(255, 255, 255, 0.5);
-  --violet: #8B5CF6;
-  --cyan: #06B6D4;
-  --pink: #EC4899;
+  /* The SAP & AI family (public/ops-family/family.css holds the tokens; these feed Tailwind). */
+  --background: #F6F5F1;
+  --foreground: #0B2545;
+  --muted: #66758C;
+  --muted-foreground: #43556F;
+  --card: rgba(255, 255, 255, 0.80);
+  --card-border: rgba(11, 37, 69, 0.11);
+  --indigo: #00539B;
+  --teal: #00AEEF;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-border: var(--card-border);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-violet: var(--violet);
-  --color-cyan: var(--cyan);
-  --color-pink: var(--pink);
-  --font-sans: 'Geist', 'Geist Fallback', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --color-indigo: var(--indigo);
+  --color-teal: var(--teal);
+  --font-sans: 'Figtree', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: 'Figtree', system-ui, sans-serif;
 }
+
+ops-suite { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
 
 /* Amorphous AI Blob Animations */
 @keyframes blob-entrance {

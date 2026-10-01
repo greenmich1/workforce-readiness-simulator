@@ -1,0 +1,140 @@
+/* ops-family/family.css — the shared design language of the SAP & AI projects
+   (Dairy Twin, Maritime OS, Enterprise Scheduler). Canonical copy: greenwell/shared/ops-family/,
+   copied into each repo by greenwell/scripts/sync_family.sh. Do not edit a copy; edit the canonical
+   file and sync. Rules: FAMILY.md.
+
+   Taken from Dairy Twin, the reference: a milk ground, frosted white cards, deep navy ink, a co-op
+   blue for action, a sky blue for focus; Newsreader for titles, Figtree for the interface, JetBrains
+   Mono for every number. */
+
+:root {
+  /* ground and surfaces */
+  --milk: #F6F5F1;
+  --paper: #FFFFFF;
+  --glass: rgba(255, 255, 255, .80);
+  --glass-2: rgba(255, 255, 255, .66);
+  --well: rgba(255, 255, 255, .55);
+
+  /* ink: one navy, three strengths */
+  --ink: #0B2545;
+  --ink-2: #43556F;
+  --ink-3: #66758C;
+  --line: rgba(11, 37, 69, .11);
+  --line-2: rgba(11, 37, 69, .18);
+
+  /* action and focus */
+  --blue: #00539B;
+  --blue-hover: #004483;
+  --blue-soft: #E3EDF7;
+  --sky: #00AEEF;
+  --sky-ink: #0072AE;
+
+  /* states: always shown with a word as well as a colour */
+  --ok: #2E7D46;
+  --ok-soft: #E6F3EA;
+  --warn: #E8A100;
+  --warn-ink: #855400;
+  --warn-soft: #FDF3DC;
+  --alert: #D7263D;
+  --alert-soft: #FBE6E9;
+  --uv: #5A3FD4;          /* agents and AI suggestions */
+  --uv-soft: #EEEAFD;
+  --uv-ink: #4A2FC2;
+
+  /* products and series (charts, routes, lanes) */
+  --c-1: #00539B;
+  --c-2: #00A3E0;
+  --c-3: #D99A00;
+  --c-4: #B8640A;
+  --c-5: #5FAE3A;
+  --c-6: #5A3FD4;
+
+  /* type */
+  --display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --sans: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* shape */
+  --radius: 14px;
+  --radius-s: 10px;
+  --shadow: 0 1px 2px rgba(11, 37, 69, .06), 0 8px 28px rgba(11, 37, 69, .08);
+  --shadow-lift: 0 2px 4px rgba(11, 37, 69, .08), 0 14px 40px rgba(11, 37, 69, .12);
+  --blur: blur(18px) saturate(1.3);
+}
+
+/* Night: the same roles on a deep navy ground (Maritime OS's night toggle). */
+[data-theme="night"] {
+  --milk: #07142A;
+  --paper: #0E2140;
+  --glass: rgba(14, 33, 64, .78);
+  --glass-2: rgba(14, 33, 64, .62);
+  --well: rgba(255, 255, 255, .05);
+  --ink: #EEF2F8;
+  --ink-2: #B9C4D6;
+  --ink-3: #8C9AB2;
+  --line: rgba(238, 242, 248, .10);
+  --line-2: rgba(238, 242, 248, .18);
+  --blue: #4DA3F0;
+  --blue-hover: #6BB4F4;
+  --blue-soft: rgba(77, 163, 240, .16);
+  --sky: #38C6F4;
+  --sky-ink: #7FD8F7;
+  --ok: #5BC47F;
+  --ok-soft: rgba(91, 196, 127, .14);
+  --warn: #F2B53A;
+  --warn-ink: #F6CA74;
+  --warn-soft: rgba(242, 181, 58, .14);
+  --alert: #FF6B7D;
+  --alert-soft: rgba(255, 107, 125, .14);
+  --uv: #9B86FF;
+  --uv-soft: rgba(155, 134, 255, .16);
+  --uv-ink: #B9A9FF;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .35);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 40px rgba(0, 0, 0, .45);
+}
+
+/* ---- base pieces ---- */
+
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.ops-card {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+[data-theme="night"] .ops-card { border-color: var(--line-2); }
+
+.ops-eyebrow { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.ops-title { font-family: var(--display); font-weight: 600; letter-spacing: -.01em; color: var(--ink); text-wrap: balance; }
+
+/* A KPI: a small capital label over a mono value. */
+.ops-kpi { display: flex; flex-direction: column; gap: 1px; padding: 5px 10px; border-radius: var(--radius-s); background: var(--well); border: 1px solid var(--line); min-width: 84px; }
+.ops-kpi > span { font-family: var(--sans); font-size: 10.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.ops-kpi > b { font-family: var(--mono); font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
+
+/* A status chip: colour and word together. */
+.ops-chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--sans); font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--well); border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.ops-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .9; }
+.ops-chip.is-ok { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.ops-chip.is-warn { color: var(--warn-ink); background: var(--warn-soft); border-color: transparent; }
+.ops-chip.is-alert { color: var(--alert); background: var(--alert-soft); border-color: transparent; }
+.ops-chip.is-ai { color: var(--uv-ink); background: var(--uv-soft); border-color: transparent; }
+
+/* Buttons: one primary per view; ghosts for the rest. */
+.ops-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: var(--radius-s); font-family: var(--sans); font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background .15s, box-shadow .15s, transform .15s; }
+.ops-btn-primary { border: 0; background: var(--blue); color: #fff; box-shadow: 0 4px 12px rgba(0, 83, 155, .3); }
+.ops-btn-primary:hover { background: var(--blue-hover); }
+.ops-btn-ghost { border: 1px solid var(--line-2); background: var(--glass-2); color: var(--ink); }
+.ops-btn-ghost:hover { background: var(--paper); }
+.ops-btn:active { transform: scale(.98); }
+.ops-btn:focus-visible, .ops-focus:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+.ops-btn[disabled] { opacity: .5; cursor: default; }
+
+/* A segmented control (speeds, views). */
+.ops-seg { display: flex; padding: 3px; gap: 2px; border-radius: var(--radius-s); background: rgba(11, 37, 69, .05); border: 1px solid var(--line); }
+.ops-seg > button { height: 30px; min-width: 38px; padding: 0 9px; border: 0; border-radius: 7px; background: transparent; font: 600 12.5px var(--sans); color: var(--ink-2); cursor: pointer; }
+.ops-seg > button[aria-pressed="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(11, 37, 69, .12); }
