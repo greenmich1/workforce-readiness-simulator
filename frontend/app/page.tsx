@@ -1,96 +1,93 @@
-export default function LandingPage() {
+"use client";
+import { useRef, useState } from "react";
+import { NZ, nzPoint } from "@/lib/nz";
+import { SITES, kindLabel, presetFor, type Site } from "@/lib/sites";
+
+/**
+ * The front screen (2026-10-02): choose a site, then schedule its people. Replaces the old
+ * "Stop Scheduling Manually" landing. Sites are public places; the workforce is illustrative.
+ */
+export default function ChooseSite() {
+  const [tab, setTab] = useState<"manufacturing" | "office">("manufacturing");
+  const [pick, setPickState] = useState<Site | null>(null);
+  const aside = useRef<HTMLElement>(null);
+  // On a phone the card sits under the map, so bring it into view once a site is chosen.
+  const setPick = (s: Site | null) => {
+    setPickState(s);
+    if (s && window.matchMedia("(max-width:820px)").matches) requestAnimationFrame(() => aside.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  };
+  const list = SITES.filter((s) => (tab === "office" ? s.kind === "office" : s.kind !== "office"));
+  const card: React.CSSProperties = { background: "var(--glass)", backdropFilter: "var(--blur)", border: "1px solid rgba(255,255,255,.9)", borderRadius: 14, boxShadow: "var(--shadow)" };
+
   return (
-    <main className="h-screen w-screen overflow-hidden bg-[#030308] relative">
-      {/* Fixed deep space background with aurora gradients */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#8B5CF6]/5 via-transparent to-transparent" />
-        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-[#EC4899]/5 via-[#06B6D4]/3 to-transparent" />
-      </div>
-
-      {/* Subtle grid overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03] z-0"
-        style={{
-          backgroundImage: `linear-gradient(#ffffff80 1px, transparent 1px), linear-gradient(90deg, #ffffff80 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      {/* Glow effects */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#8B5CF6]/20 blur-[100px] rounded-full z-0" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#06B6D4]/15 blur-[100px] rounded-full z-0" />
-
-      {/* Main content - single viewport */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 animate-fade-in">
-        {/* Amorphous AI Blob */}
-        <div className="mb-8 animate-scale-in">
-          <div className="blob-spin" style={{ width: 80, height: 80 }}>
-            <div
-              className="blob-morph"
-              style={{
-                width: "100%",
-                height: "100%",
-                background:
-                  "linear-gradient(135deg, #8B5CF6 0%, #06B6D4 50%, #EC4899 100%)",
-                boxShadow:
-                  "0 8px 40px rgba(139, 92, 246, 0.4), 0 4px 16px rgba(6, 182, 212, 0.25)",
-                borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Headline */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-center leading-tight text-balance max-w-4xl animate-slide-up">
-          <span className="text-white">Stop Scheduling Manually.</span>
-          <br />
-          <span className="bg-gradient-to-r from-[#8B5CF6] via-[#06B6D4] to-[#EC4899] bg-clip-text text-transparent">
-            Let Mathematics Do It.
-          </span>
-        </h1>
-
-        {/* Subheadline - simplified */}
-        <p className="mt-6 text-lg sm:text-xl text-white/50 max-w-xl mx-auto text-center leading-relaxed text-pretty animate-slide-up animation-delay-100">
-          Transform weeks of complex training planning into seconds using
-          constraint-based optimisation.
+    <main style={{ minHeight: "100vh", paddingTop: 40, background: "radial-gradient(120% 90% at 55% 38%,#FFFFFF 0%,#F3F3EF 55%,#E6E7E3 100%) " }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 24px 48px" }}>
+        <h1 style={{ fontFamily: "var(--display)", fontWeight: 600, fontSize: 44, letterSpacing: "-0.015em", margin: 0 }}>Enterprise Scheduler</h1>
+        <p style={{ fontSize: 17, color: "var(--ink-2)", margin: "8px 0 24px", maxWidth: 680 }}>
+          Choose a site of a New Zealand dairy manufacturer-exporter, then let a CP-SAT solver schedule its people&apos;s training around their shifts.
         </p>
-
-        {/* Badge */}
-        <div className="mt-6 animate-slide-up animation-delay-200">
-          <span className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60 bg-white/10 border border-white/10 rounded-full backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-            Proof of Concept
-          </span>
+        <div className="ops-seg" role="group" aria-label="Kind of site" style={{ display: "inline-flex", marginBottom: 20 }}>
+          <button aria-pressed={tab === "manufacturing"} onClick={() => { setTab("manufacturing"); setPick(null); }}>Manufacturing</button>
+          <button aria-pressed={tab === "office"} onClick={() => { setTab("office"); setPick(null); }}>In-market offices</button>
         </div>
 
-        {/* CTA Button */}
-        <div className="mt-10 animate-slide-up animation-delay-300">
-          <a
-            href="/app"
-            className="group inline-flex items-center gap-3 px-8 py-4 text-lg font-semibold text-white rounded-full border border-white/20 transition-all duration-300 hover:scale-105 hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/10 hover:shadow-lg hover:shadow-[#8B5CF6]/20"
-          >
-            Launch the Simulator
-            <svg
-              className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M14 5l7 7m0 0l-7 7m7-7H3"
-              />
-            </svg>
-          </a>
-        </div>
+        {/* Map and card side by side; stacked on a phone. */}
+        <style>{`.es-pick{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:20px;align-items:start}
+          .es-pick g[role=button]:focus{outline:none}.es-pick g[role=button]:focus-visible circle{stroke:#0B2545}
+          @media (max-width:820px){.es-pick{grid-template-columns:1fr}.es-pick aside{position:static!important}}`}</style>
+        <div className="es-pick">
+          {tab === "manufacturing" ? (
+            <div style={{ ...card, padding: 16 }}>
+              <svg viewBox={`-10 -10 ${NZ.w + 20} ${NZ.h + 20}`} style={{ width: "100%", maxHeight: "max(420px, calc(100vh - 330px))", display: "block" }} role="group" aria-label="Map of New Zealand with the manufacturing sites">
+                <path d={NZ.d} fill="#E3EDF7" stroke="#9DB7D1" strokeWidth={1} />
+                {list.map((s) => {
+                  const p = nzPoint(s.lon, s.lat), on = pick?.id === s.id;
+                  return (
+                    <g key={s.id} onClick={() => setPick(s)} style={{ cursor: "pointer" }} role="button" tabIndex={0} aria-label={`${s.name}, ${s.place}`}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setPick(s); }}>
+                      <circle cx={p.x} cy={p.y} r={on ? 8 : s.scale === "large" ? 6 : 4.5} fill={s.kind === "research" ? "#5A3FD4" : "#00539B"} stroke="#fff" strokeWidth={2} />
+                    </g>
+                  );
+                })}
+                {/* Labels last, so no dot paints over them. */}
+                {list.map((s) => {
+                  const p = nzPoint(s.lon, s.lat), on = pick?.id === s.id;
+                  return <g key={s.id} style={{ pointerEvents: "none" }}>{(on || s.scale === "large") && <text x={p.x + 10} y={p.y + 4} fontSize={12} fontFamily="Figtree" fontWeight={600} fill="#0B2545" stroke="#fff" strokeWidth={3} paintOrder="stroke" strokeLinejoin="round">{s.name}</text>}</g>;
+                })}
+              </svg>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10 }}>
+              {list.map((s) => (
+                <button key={s.id} onClick={() => setPick(s)} style={{ ...card, padding: "14px 16px", textAlign: "left", cursor: "pointer", outline: pick?.id === s.id ? "2px solid #00539B" : "none" }}>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
+                  <div style={{ fontSize: 13, color: "var(--ink-3)" }}>{s.region}</div>
+                </button>
+              ))}
+            </div>
+          )}
 
-        {/* Footer line */}
-        <div className="absolute bottom-8 left-0 right-0 text-center animate-fade-in animation-delay-400">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40">
-            Powered by Google CP-SAT
-          </p>
+          <aside ref={aside} style={{ ...card, padding: 20, position: "sticky", top: 56 }}>
+            {pick ? (
+              <>
+                <div className="ops-eyebrow">{kindLabel(pick)}</div>
+                <h2 style={{ fontFamily: "var(--display)", fontWeight: 600, fontSize: 26, margin: "6px 0 2px" }}>{pick.name}</h2>
+                <div style={{ fontSize: 14, color: "var(--ink-2)", marginBottom: 14 }}>{pick.place}, {pick.region}</div>
+                <div className="ops-eyebrow" style={{ marginBottom: 4 }}>Illustrative workforce</div>
+                <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.45, margin: "0 0 18px" }}>{presetFor(pick).summary}</p>
+                <a className="ops-btn ops-btn-primary" href={`/app?site=${pick.id}`} style={{ width: "100%" }}>Open the scheduler</a>
+                <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 12 }}>Places are public; the people and courses are generated.</p>
+              </>
+            ) : (
+              <>
+                <div className="ops-eyebrow">{list.length} {tab === "office" ? "offices" : "sites"}</div>
+                <p style={{ fontSize: 15, color: "var(--ink-2)", lineHeight: 1.45, marginTop: 8 }}>
+                  {tab === "office" ? "Pick an office to schedule its sales and service team." : "Pick a site on the map. The largest are named; any dot opens."}
+                </p>
+                <a className="ops-btn ops-btn-ghost" href="/app" style={{ marginTop: 8 }}>Or start with a blank workforce</a>
+              </>
+            )}
+          </aside>
         </div>
       </div>
     </main>
