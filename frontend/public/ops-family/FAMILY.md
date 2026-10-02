@@ -48,3 +48,17 @@ The three are one company's chain:
 
 Where it fits, each app links to the others at the point the story crosses: a site's plant, a product's
 shipment, an agent's schedule.
+
+## Where each app lives
+
+| App | Repo (path under `~/Developer`) | Live |
+|---|---|---|
+| Dairy Twin | `dairy-twin` | https://dairy-twin.vercel.app/ |
+| Maritime OS | `maritime-intel-os` (`frontend/`) | Vercel, from `main` |
+| Enterprise Scheduler | `workforce-readiness-simulator/v0.2-Claude` (`frontend/`; **public** repo) | https://workforce-readiness-simulator.vercel.app/ |
+
+Enterprise Scheduler opens on **Choose a site** (2026-10-03). Its sites and offices
+(`frontend/lib/sites.ts`) are a New Zealand dairy co-operative's manufacturing sites and in-market
+offices, taken from the co-operative's own public contact pages (checked 2026-10-02); the company
+is not named. The workforce behind each site is an illustrative preset, not its real headcount.
+The New Zealand outline (`frontend/lib/nz.ts`) is Natural Earth 1:50m, public domain.
