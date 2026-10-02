@@ -93,17 +93,59 @@ export interface Preset {
   max_classroom: number;
   shifts: Record<ShiftId, boolean>;
   split: Record<ShiftId, number>;
+  /** Training rooms (trainers) running at once. */
+  rooms: 1 | 2;
+  /** Days in the training window. */
+  window_days: number;
   /** One line describing the illustrative workforce. */
   summary: string;
 }
 
-/** The illustrative workforce for a site, by its kind and scale. */
+/**
+ * The training profile inferred for a site: a base by its kind and scale, then nudged by up to ±12%
+ * from a hash of its id, so that two sites of the same kind are not identical. Deterministic.
+ */
 export function presetFor(s: Site): Preset {
+  const b = basePreset(s);
+  let h = 0;
+  for (const c of s.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const f = 0.88 + (h % 25) / 100;
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(v)));
+  const employees = clamp(b.employees * f, 20, 500);
+  return {
+    ...b,
+    employees,
+    roles: clamp(b.roles * f, 5, 50),
+    courses: clamp(b.courses * (2 - f), 10, 60),
+    summary: b.summary.replace(/^About \d+/, `About ${Math.round(employees / 5) * 5}`),
+  };
+}
+
+/** What the profile means, as label and value pairs for a site's card. */
+export function profileFacts(p: Preset): [string, string][] {
+  const rosters = [
+    p.shifts.core4on4off && "12-hour 4-on 4-off",
+    p.shifts.panama223 && "Panama 2-2-3",
+    p.shifts.standard52 && "Weekday 5:2",
+  ].filter(Boolean).join(", ");
+  return [
+    ["People", String(p.employees)],
+    ["Roles", String(p.roles)],
+    ["Courses", String(p.courses)],
+    ["Training rooms", String(p.rooms)],
+    ["Class size", `up to ${p.max_classroom}`],
+    ["Window", `${p.window_days} days`],
+    ["Rosters", rosters],
+  ];
+}
+
+function basePreset(s: Site): Preset {
   if (s.kind === "office") return {
     employees: 40, roles: 8, courses: 15, relationship_density: 0.4,
     day_start_hour: 8, day_end_hour: 18, allow_saturday: false, allow_sunday: false, max_classroom: 15,
     shifts: { core4on4off: false, panama223: false, standard52: true },
     split: { core4on4off: 0, panama223: 0, standard52: 100 },
+    rooms: 1, window_days: 28,
     summary: "About 40 people in sales, customer service and finance, on weekday hours; compliance and SAP S/4HANA order-to-cash courses.",
   };
   if (s.kind === "research") return {
@@ -111,6 +153,7 @@ export function presetFor(s: Site): Preset {
     day_start_hour: 8, day_end_hour: 18, allow_saturday: false, allow_sunday: false, max_classroom: 20,
     shifts: { core4on4off: false, panama223: false, standard52: true },
     split: { core4on4off: 0, panama223: 0, standard52: 100 },
+    rooms: 1, window_days: 35,
     summary: "About 120 scientists, technologists and pilot-plant staff on weekday hours; laboratory safety and quality courses.",
   };
   if (s.scale === "large") return {
@@ -118,6 +161,7 @@ export function presetFor(s: Site): Preset {
     day_start_hour: 6, day_end_hour: 20, allow_saturday: true, allow_sunday: true, max_classroom: 20,
     shifts: { core4on4off: true, panama223: true, standard52: true },
     split: { core4on4off: 70, panama223: 20, standard52: 10 },
+    rooms: 2, window_days: 42,
     summary: "About 450 operators, technicians and engineers on continuous 12-hour rosters; food safety, plant and SAP maintenance courses.",
   };
   return {
@@ -125,6 +169,7 @@ export function presetFor(s: Site): Preset {
     day_start_hour: 6, day_end_hour: 20, allow_saturday: true, allow_sunday: false, max_classroom: 18,
     shifts: { core4on4off: true, panama223: false, standard52: true },
     split: { core4on4off: 80, panama223: 0, standard52: 20 },
+    rooms: 1, window_days: 35,
     summary: "About 180 operators and technicians on 12-hour rosters through the season; food safety and plant courses.",
   };
 }
