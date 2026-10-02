@@ -57,8 +57,9 @@ shipment, an agent's schedule.
 | Maritime OS | `maritime-intel-os` (`frontend/`) | Vercel, from `main` |
 | Enterprise Scheduler | `workforce-readiness-simulator/v0.2-Claude` (`frontend/`; **public** repo) | https://workforce-readiness-simulator.vercel.app/ |
 
-Enterprise Scheduler opens on **Choose a site** (2026-10-03). Its sites and offices
-(`frontend/lib/sites.ts`) are a New Zealand dairy co-operative's manufacturing sites and in-market
-offices, taken from the co-operative's own public contact pages (checked 2026-10-02); the company
-is not named. The workforce behind each site is an illustrative preset, not its real headcount.
-The New Zealand outline (`frontend/lib/nz.ts`) is Natural Earth 1:50m, public domain.
+Enterprise Scheduler opens on **Choose a site** (tiles with an icon per kind of place, 2026-10-03).
+Its sites and offices (`frontend/lib/sites.ts`) are a New Zealand dairy co-operative's manufacturing
+sites and in-market offices, taken from the co-operative's own public contact pages (checked
+2026-10-02); the company is not named. Choosing one shows the training profile inferred for it
+(`presetFor`: by kind and scale, varied a little per site), and the scheduler generates that
+workforce at once; there are no settings to fill in. The people, roles and courses are synthetic.

@@ -515,108 +515,6 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
   );
 }
 
-// ─── Accordion ────────────────────────────────────────────────────────────────
-function Accordion({title,icon,children,open:defaultOpen=false}:{title:string;icon:React.ReactNode;children:React.ReactNode;open?:boolean}){
-  const [open,setOpen]=useState(defaultOpen);
-  return(
-    <div style={{marginBottom:2}}>
-      <button
-        onClick={()=>setOpen(p=>!p)}
-        style={{
-          width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-          padding:"8px 10px", background:open?`${DS.i50}`:"transparent",
-          border:`1px solid ${open?DS.i200:"transparent"}`,
-          borderRadius:9, cursor:"pointer", transition:"all 0.18s ease",
-        }}
-      >
-        <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <span style={{fontSize:14,lineHeight:1}}>{icon}</span>
-          <span style={{fontFamily:SANS,fontSize:11,fontWeight:600,color:DS.z700}}>{title}</span>
-        </div>
-        {/* UP when closed (collapsed), DOWN when open (expanded) */}
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-          style={{transform:open?"rotate(0deg)":"rotate(180deg)",transition:"transform 0.22s ease",flexShrink:0}}>
-          <path d="M2 4.5L6 8.5L10 4.5" stroke={DS.z400} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      <div style={{
-        overflow:"hidden",
-        maxHeight:open?"600px":"0px",
-        transition:"max-height 0.28s cubic-bezier(0.4,0,0.2,1)",
-        paddingLeft:4, paddingRight:4,
-      }}>
-        <div style={{padding:"10px 4px 6px"}}>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Sidecar Slider ───────────────────────────────────────────────────────────
-function SideSlider({label,field,min,max,step=1,value,unit="",onChange}:{
-  label:string;field:string;min:number;max:number;step?:number;value:number;unit?:string;
-  onChange:(f:string,v:number)=>void;
-}){
-  const pct=((value-min)/(max-min))*100;
-  return(
-    <div style={{marginBottom:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <span style={{fontFamily:SANS,fontSize:11,color:DS.z600,fontWeight:500}}>{label}</span>
-        <span style={{
-          fontFamily:MONO,fontSize:13,color:DS.i600,fontWeight:600,
-          background:DS.i50,border:`1px solid ${DS.i100}`,padding:"1px 8px",borderRadius:20,
-        }}>{value}{unit}</span>
-      </div>
-      <div style={{position:"relative",height:20,display:"flex",alignItems:"center"}}>
-        <div style={{position:"absolute",left:0,right:0,height:3,background:DS.z200,borderRadius:2}}>
-          <div style={{width:`${pct}%`,height:"100%",background:`linear-gradient(90deg,${DS.i400},${DS.i500})`,borderRadius:2,transition:"width 0.1s"}}/>
-        </div>
-        <input type="range" min={min} max={max} step={step} value={value}
-          onChange={e=>onChange(field,step<1?parseFloat(e.target.value):parseInt(e.target.value))}
-          style={{position:"relative",zIndex:1,width:"100%",WebkitAppearance:"none",appearance:"none",background:"transparent",cursor:"pointer",height:20}}/>
-      </div>
-      <div style={{display:"flex",justifyContent:"space-between",marginTop:1}}>
-        <span style={{fontFamily:MONO,fontSize:11,color:DS.z300}}>{min}</span>
-        <span style={{fontFamily:MONO,fontSize:11,color:DS.z300}}>{max}</span>
-      </div>
-    </div>
-  );
-}
-
-function SideDateInput({label,value,min,max,onChange}:{label:string;value:string;min:string;max:string;onChange:(v:string)=>void}){
-  return(
-    <div style={{marginBottom:12}}>
-      <div style={{fontFamily:SANS,fontSize:11,color:DS.z600,fontWeight:500,marginBottom:5}}>{label}</div>
-      <input type="date" value={value} min={min} max={max} onChange={e=>onChange(e.target.value)}
-        style={{
-          width:"100%",padding:"7px 10px",
-          background:"rgba(255,255,255,0.9)",
-          border:`1px solid ${DS.z200}`,borderRadius:9,
-          fontFamily:MONO,fontSize:11,color:DS.z800,
-          outline:"none",transition:"border-color 0.15s, box-shadow 0.15s",
-        }}/>
-    </div>
-  );
-}
-
-function SideHourSelect({label,value,options,onChange}:{label:string;value:number;options:number[];onChange:(v:number)=>void}){
-  return(
-    <div style={{flex:1}}>
-      <div style={{fontFamily:SANS,fontSize:11,color:DS.z600,fontWeight:500,marginBottom:5}}>{label}</div>
-      <select value={value} onChange={e=>onChange(parseInt(e.target.value))}
-        style={{
-          width:"100%",padding:"7px 8px",
-          background:"rgba(255,255,255,0.9)",
-          border:`1px solid ${DS.z200}`,borderRadius:9,
-          fontFamily:MONO,fontSize:11,color:DS.z800,
-          outline:"none",cursor:"pointer",
-        }}>
-        {options.map(h=><option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>)}
-      </select>
-    </div>
-  );
-}
-
-// ─── Inspector Card ───────────────────────────────────────────────────────────
 function ICard({children,accent=DS.i500,style={}}:{children:React.ReactNode;accent?:string;style?:React.CSSProperties}){
   return(
     <div style={{
@@ -1063,7 +961,6 @@ export default function WorkforceSim(){
   const [status,   setStatus]   = useState<Status>("idle");
   const [selCell,  setSelCell]  = useState<{day:number;group:number;room:number}|null>(null);
   const [selEmp,   setSelEmp]   = useState<string|null>(null);
-  const [sidecar,  setSidecar]  = useState(true);
   const [ch,       setCH]       = useState(500);
   const [tip,      setTip]      = useState<Tooltip|null>(null);
   const [t0,       setT0]       = useState<number|null>(null);
@@ -1116,7 +1013,6 @@ export default function WorkforceSim(){
   },[t0,t1,live,deepSolving]);
 
   const today    = useMemo(()=>toIso(new Date()),[]);
-  const maxStart = useMemo(()=>addMonths(today,6),[today]);
 
   const [prof,setProf]=useState({
     employees:50, roles:10, courses:20, relationship_density:0.5,
@@ -1134,18 +1030,21 @@ export default function WorkforceSim(){
   });
   // The site chosen on the front screen (?site=…): its illustrative workforce becomes the profile.
   const [siteName,setSiteName]=useState<string|null>(null);
+  const autoGen=useRef(false);
   useEffect(()=>{
     const site=siteById(new URLSearchParams(window.location.search).get("site"));
-    if(!site) return;
+    // No site, nothing to schedule: back to the front screen to choose one.
+    if(!site){ window.location.replace("/"); return; }
     const pr=presetFor(site);
+    autoGen.current=true;
+    setNumTrainers(pr.rooms);
     setSiteName(`${site.name}, ${site.place}`);
     setProf(p=>({...p,employees:pr.employees,roles:pr.roles,courses:pr.courses,relationship_density:pr.relationship_density,
-      day_start_hour:pr.day_start_hour,day_end_hour:pr.day_end_hour,allow_saturday:pr.allow_saturday,allow_sunday:pr.allow_sunday,max_classroom:pr.max_classroom}));
+      day_start_hour:pr.day_start_hour,day_end_hour:pr.day_end_hour,allow_saturday:pr.allow_saturday,allow_sunday:pr.allow_sunday,max_classroom:pr.max_classroom,
+      end_date:addDays(p.start_date,pr.window_days)}));
     setShiftEnabled(pr.shifts);
     setShiftSplit(pr.split);
   },[]);
-  const minEnd=addDays(prof.start_date,14), maxEnd=addDays(prof.start_date,90);
-  const windowDays=daysBetween(prof.start_date,prof.end_date);
 
   // Fonts + global CSS
   useEffect(()=>{
@@ -1169,6 +1068,24 @@ export default function WorkforceSim(){
       }
       @keyframes wrs-pulse{0%,100%{opacity:1}50%{opacity:0.25}}
       @keyframes wrs-fadein{from{opacity:0}to{opacity:1}}
+      /* Phone (2026-10-03): stacked masthead, swipeable KPIs, inspector as a bottom sheet, full-width dock. */
+      @media (max-width:760px){
+        .es-head{flex-direction:column!important;padding:8px 12px!important;gap:8px!important;min-height:0!important}
+        .es-mark{border-right:none!important;margin-right:0!important;padding-right:0!important}
+        .es-desc{display:none!important}
+        .es-kpis{overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:2px;scrollbar-width:none}
+        .es-kpis::-webkit-scrollbar{display:none}
+        .es-kpis>div{flex:0 0 160px!important;min-width:160px!important;height:78px!important;min-height:78px!important;scroll-snap-align:start}
+        .es-main{padding:4px 4px 0!important}
+        .es-insp{position:fixed!important;left:0;right:0;bottom:0;width:auto!important;max-height:62dvh;z-index:60;
+          border-radius:18px 18px 0 0;background:rgba(255,255,255,0.97)!important;box-shadow:0 -12px 40px rgba(11,37,69,.18);
+          padding:12px 12px calc(12px + env(safe-area-inset-bottom))!important}
+        .es-insp[data-sel="0"]{display:none!important}
+        .es-dock{left:8px!important;right:8px;transform:none!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;justify-content:space-between}
+        .es-dock-label{display:none}
+        /* The sheet sits in the body's stacking context, under the dock: hide the dock while it is open. */
+        body:has(.es-insp[data-sel="1"]) .es-dock{display:none!important}
+      }
       @keyframes wrs-aurora{
         0%,100%{transform:translate(0,0) scale(1)}
         33%{transform:translate(2%,1%) scale(1.03)}
@@ -1355,6 +1272,14 @@ export default function WorkforceSim(){
     }catch{setStatus("error");}
   };
 
+  // Generate as soon as the site's profile has landed in state (one render after the effect above).
+  useEffect(()=>{
+    if(!autoGen.current||!siteName) return;
+    autoGen.current=false;
+    generate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[siteName,prof,shiftEnabled,shiftSplit,numTrainers]);
+
   const solve=async()=>{
     if(!sim) return;
     currentTimeLimitRef.current = SOLVE_LIMIT_S;
@@ -1375,7 +1300,6 @@ export default function WorkforceSim(){
       setStatus("solved");
       startAnim();
       setScoreFlash(true);
-      setSidecar(false);
       setZoom(2);
       setTimeout(()=>setScoreFlash(false), 2800);
     }catch{setT1(Date.now());setStatus("error");}
@@ -1470,14 +1394,12 @@ export default function WorkforceSim(){
     });
   },[tm,today]);
 
-  const startHrs=Array.from({length:23},(_,i)=>i);
-  const endHrs=Array.from({length:24},(_,i)=>i+1).filter(h=>h>prof.day_start_hour);
 
   const statusLabels:Record<Status,string>={idle:"Ready",generating:"Generating…",generated:"Planned",solving:"Optimizing…",solved:"Optimized",error:"Error"};
   const statusColors:Record<Status,string>={idle:DS.z300,generating:DS.amber,generated:DS.i500,solving:DS.t500,solved:DS.emerald,error:DS.red};
 
   return(
-    <div style={{width:"100vw",height:"calc(100vh - 40px)",marginTop:40,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
+    <div style={{width:"100vw",height:"calc(100dvh - 40px)",marginTop:40,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
 
       {/* Aurora orbs — fixed, breathing */}
       <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
@@ -1503,10 +1425,10 @@ export default function WorkforceSim(){
         borderBottom:`1px solid ${DS.rim}`,
         boxShadow:"0 1px 2px rgba(11,37,69,.06), 0 8px 28px rgba(11,37,69,.08)",
       }}>
-        <div style={{display:"flex",alignItems:"stretch",gap:0,padding:"10px 20px 10px 20px",minHeight:72}}>
+        <div className="es-head" style={{display:"flex",alignItems:"stretch",gap:0,padding:"10px 20px 10px 20px",minHeight:72}}>
 
           {/* ── LEFT: Wordmark + description ── */}
-          <div style={{display:"flex",alignItems:"flex-start",gap:12,flexShrink:0,marginRight:24,paddingRight:24,borderRight:`1px solid ${DS.rim}`,cursor:"default",position:"relative"}}
+          <div className="es-mark" style={{display:"flex",alignItems:"flex-start",gap:12,flexShrink:0,marginRight:24,paddingRight:24,borderRight:`1px solid ${DS.rim}`,cursor:"default",position:"relative"}}
             onMouseEnter={e=>{const t=document.getElementById("cpsat-tip"); if(t) t.style.opacity="1";}}
             onMouseLeave={e=>{const t=document.getElementById("cpsat-tip"); if(t) t.style.opacity="0";}}>
             {/* The family mark: a co-op blue disc, as Dairy Twin's top bar has (FAMILY.md). */}
@@ -1520,7 +1442,7 @@ export default function WorkforceSim(){
                 Enterprise Scheduler
               </div>
 <div style={{fontFamily:SANS,fontSize:12,color:DS.z500,fontWeight:600,marginBottom:5}}>{siteName ?? "Blank workforce"} · <a href="/" style={{color:DS.i500,textDecoration:"none"}}>Change site</a></div>
-  <div style={{fontFamily:SANS,fontSize:13,color:DS.z600,lineHeight:1.55,maxWidth:285}}>
+  <div className="es-desc" style={{fontFamily:SANS,fontSize:13,color:DS.z600,lineHeight:1.55,maxWidth:285}}>
   Google&apos;s CP-SAT solver schedules a site&apos;s training around its shifts: weeks of manual planning in seconds. The people are illustrative.
               </div>
             </div>
@@ -1547,7 +1469,7 @@ export default function WorkforceSim(){
           </div>
 
           {/* ── RIGHT: Metric tiles ── */}
-          <div style={{flex:1,display:"flex",gap:7,alignItems:"stretch",minWidth:0}}>
+          <div className="es-kpis" style={{flex:1,display:"flex",gap:7,alignItems:"stretch",minWidth:0}}>
             <MetricTile label="Solve Time"
               display={solveDisplay}
               unit={solveDisplay==="—"?undefined:"s"}
@@ -1597,186 +1519,8 @@ export default function WorkforceSim(){
       {/* ── BODY ── */}
       <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative",zIndex:1}}>
 
-        {/* ── PARAMETER SIDECAR ── */}
-        {sidecar&&(
-          <aside style={{
-            width:244,flexShrink:0,
-            background:"rgba(255,252,247,0.18)",
-            backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
-            borderRight:`1px solid rgba(255,255,255,0.22)`,
-            overflowY:"auto",
-            animation:"wrs-spring 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-            display:"flex",flexDirection:"column",
-          }}>
-            <div style={{padding:"10px 12px 8px",borderBottom:`1px solid rgba(230,225,215,0.5)`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{padding:"3px 11px",borderRadius:7,background:DS.z900,flexShrink:0}}>
-                  <span style={{fontFamily:SANS,fontSize:13,fontWeight:700,color:"white",letterSpacing:"-0.01em"}}>Create Synthetic Data</span>
-                </div>
-              </div>
-              <button onClick={()=>setSidecar(false)}
-                style={{width:22,height:22,borderRadius:6,background:"rgba(255,255,255,0.6)",border:`1px solid rgba(210,205,200,0.6)`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:DS.z500,fontSize:11,fontWeight:700}}>
-                ✕
-              </button>
-            </div>
-            <div style={{flex:1,overflowY:"auto",padding:"10px 12px 80px"}}>
-              <Accordion title="Time" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={DS.i500} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>}>
-                <SideDateInput label="Start Date" value={prof.start_date} min={today} max={maxStart}
-                  onChange={v=>setProf(p=>({...p,start_date:v,end_date:addDays(v,Math.max(14,Math.min(90,daysBetween(v,p.end_date))))}))}/>
-                <SideDateInput label="End Date"   value={prof.end_date}   min={minEnd} max={maxEnd} onChange={v=>setProf(p=>({...p,end_date:v}))}/>
-                <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:`${DS.i500}09`,border:`1px solid ${DS.i200}`,borderRadius:9,marginBottom:10}}>
-                  <span style={{fontFamily:MONO,fontSize:13,color:DS.z500}}>Window</span>
-                  <span style={{fontFamily:MONO,fontSize:13,color:DS.i600,fontWeight:600}}>{windowDays} days</span>
-                </div>
-                {/* Sat / Sun toggles */}
-                <div style={{display:"flex",gap:6,marginBottom:12}}>
-                  {([["Sat",prof.allow_saturday,"allow_saturday"],["Sun",prof.allow_sunday,"allow_sunday"]] as [string,boolean,string][]).map(([label,on,field])=>(
-                    <button key={field} onClick={()=>setProf(p=>({...p,[field]:!on}))}
-                      style={{flex:1,padding:"6px 0",borderRadius:8,border:`1.5px solid ${on?DS.i400:DS.z300}`,background:on?DS.i50:"rgba(255,255,255,0.5)",cursor:"pointer",fontFamily:MONO,fontSize:13,fontWeight:700,color:on?DS.i600:DS.z500,transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
-                      <span style={{width:8,height:8,borderRadius:"50%",background:on?DS.i500:DS.z300,display:"inline-block",boxShadow:on?`0 0 6px ${DS.i500}88`:"none",flexShrink:0}}/>
-                      {label} {on?"ON":"OFF"}
-                    </button>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:8,marginBottom:4}}>
-                  <SideHourSelect label="Day Start" value={prof.day_start_hour} options={startHrs} onChange={v=>setProf(p=>({...p,day_start_hour:v,day_end_hour:Math.max(v+1,p.day_end_hour)}))}/>
-                  <SideHourSelect label="Day End"   value={prof.day_end_hour}   options={endHrs}   onChange={v=>setProf(p=>({...p,day_end_hour:v}))}/>
-                </div>
-              </Accordion>
-
-              <div style={{height:8}}/>
-              <Accordion title="Workforce" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={DS.i500} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>}>
-                <SideSlider label="Employees" field="employees" min={10} max={500} value={prof.employees} onChange={(f,v)=>setProf(p=>({...p,[f]:v}))}/>
-                <SideSlider label="Roles"     field="roles"     min={3}  max={50}  value={prof.roles}     onChange={(f,v)=>setProf(p=>({...p,[f]:v}))}/>
-                <SideSlider label="Courses"   field="courses"   min={5}  max={60}  value={prof.courses}   onChange={(f,v)=>setProf(p=>({...p,[f]:v}))}/>
-              </Accordion>
-
-              <div style={{height:8}}/>
-              <Accordion title="Shift Patterns" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={DS.i500} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.5-4.5L3 9M4 13a8 8 0 0 0 14.5 4.5L21 15"/><path d="M3 4v5h5M21 20v-5h-5"/></svg>}>
-                {SHIFT_DEFS.map(def=>{
-                  const sid=def.id as ShiftId;
-                  const on=shiftEnabled[sid];
-                  const pct=shiftSplit[sid];
-                  const enabledCount=Object.values(shiftEnabled).filter(Boolean).length;
-                  return(
-                    <div key={sid} style={{marginBottom:10,borderRadius:10,border:`1.5px solid ${on?DS.i200:"rgba(255,255,255,0.4)"}`,background:on?"rgba(238,242,255,0.55)":"rgba(255,255,255,0.30)",overflow:"hidden",transition:"all 0.2s"}}>
-                      {/* Header row */}
-                      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:def.always?"default":"pointer"}} onClick={()=>!def.always&&setShiftEnabled(p=>({...p,[sid]:!on}))}>
-                        <div style={{width:10,height:10,borderRadius:"50%",background:on?DS.i500:DS.z300,boxShadow:on?`0 0 8px ${DS.i500}88`:"none",flexShrink:0,transition:"all 0.2s"}}/>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:SANS,fontSize:11,fontWeight:700,color:on?DS.z900:DS.z600,lineHeight:1.2}}>{def.name}</div>
-                          <div style={{fontFamily:MONO,fontSize:11,color:on?DS.i600:DS.z400,marginTop:1}}>{def.shortName} · {def.hoursPerShift}h shifts</div>
-                        </div>
-                        {def.always&&<span style={{fontFamily:MONO,fontSize:11,color:DS.i500,background:DS.i50,border:`1px solid ${DS.i200}`,borderRadius:4,padding:"1px 5px",flexShrink:0}}>MAIN</span>}
-                        {!def.always&&<div style={{width:28,height:16,borderRadius:8,background:on?DS.i500:DS.z300,position:"relative",flexShrink:0,transition:"background 0.2s"}}>
-                          <div style={{position:"absolute",top:2,left:on?14:2,width:12,height:12,borderRadius:"50%",background:"white",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-                        </div>}
-                      </div>
-                      {/* Details when enabled */}
-                      {on&&<div style={{padding:"0 10px 10px"}}>
-                        <div style={{fontFamily:MONO,fontSize:11,color:DS.z500,lineHeight:1.7,marginBottom:6}}>{def.category}<br/>{def.daysLabel} · {def.cycleLength}d cycle · {def.teams}</div>
-                        {/* Employee % split slider — only show for optional patterns with at least one other enabled */}
-                        {!def.always&&enabledCount>1&&(
-                          <div>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                              <span style={{fontFamily:MONO,fontSize:11,color:DS.z500}}>Employee share</span>
-                              <span style={{fontFamily:MONO,fontSize:11,color:DS.i600,fontWeight:600}}>{pct}%</span>
-                            </div>
-                            <input type="range" min={5} max={80} step={5} value={pct}
-                              onChange={e=>setShiftSplit(p=>({...p,[sid]:parseInt(e.target.value)}))}
-                              style={{width:"100%",accentColor:DS.i500,cursor:"pointer",height:16}}/>
-                          </div>
-                        )}
-                      </div>}
-                    </div>
-                  );
-                })}
-                <div style={{padding:"7px 10px",background:"rgba(238,242,255,0.45)",border:`1px solid ${DS.i100}`,borderRadius:8,marginTop:2}}>
-                  <div style={{fontFamily:MONO,fontSize:11,color:DS.z500,lineHeight:1.7}}>
-                    Active patterns: <strong style={{color:DS.i600}}>{Object.values(shiftEnabled).filter(Boolean).length}</strong><br/>
-                    Employees assigned proportionally by share %
-                  </div>
-                </div>
-              </Accordion>
-
-              <div style={{height:8}}/>
-              <Accordion title="Learning" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={DS.i500} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg>} open={false}>
-                <SideSlider label="Rel. Density" field="relationship_density" min={0.1} max={1.0} step={0.1} value={prof.relationship_density} onChange={(f,v)=>setProf(p=>({...p,[f]:v}))}/>
-                <SideSlider label="Max Classroom Size" field="max_classroom" min={10} max={30} step={1} value={prof.max_classroom} onChange={(f,v)=>setProf(p=>({...p,[f]:v}))}/>
-
-                {/* Trainers / Rooms toggle */}
-                <div style={{marginBottom:10}}>
-                  <div style={{fontFamily:MONO,fontSize:11,color:DS.z500,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Training Rooms & Trainers</div>
-                  <div style={{display:"flex",gap:4}}>
-                    {([1,2] as const).map(n=>(
-                      <button key={n} onClick={()=>setNumTrainers(n)}
-                        style={{
-                          flex:1,padding:"7px 4px",borderRadius:8,cursor:"pointer",
-                          fontFamily:SANS,fontSize:11,fontWeight:700,
-                          border:`1.5px solid ${numTrainers===n?DS.i400:DS.z200}`,
-                          background:numTrainers===n?DS.i50:"rgba(255,255,255,0.4)",
-                          color:numTrainers===n?DS.i600:DS.z500,
-                          transition:"all 0.15s",
-                        }}>
-                        {n === 1 ? "1 Room" : "2 Rooms"}
-                        <div style={{fontFamily:MONO,fontSize:11,color:numTrainers===n?DS.i500:DS.z400,marginTop:2}}>
-                          {n === 1 ? "1 Trainer" : "2 Trainers"}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  {numTrainers===2&&(
-                    <div style={{marginTop:5,fontFamily:MONO,fontSize:11,color:DS.t600,lineHeight:1.5}}>
-                      Canvas splits each day into teal (Room 1) + violet (Room 2) lanes after optimising.
-                    </div>
-                  )}
-                </div>
-
-                <div style={{padding:"6px 10px",background:"rgba(255,253,249,0.45)",border:`1px solid rgba(255,255,255,0.45)`,borderRadius:8,marginBottom:10}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                    <span style={{fontFamily:MONO,fontSize:11,color:DS.z500}}>Daily hours</span>
-                    <span style={{fontFamily:MONO,fontSize:11,color:DS.t600,fontWeight:600}}>{prof.day_end_hour-prof.day_start_hour}h</span>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between"}}>
-                    <span style={{fontFamily:MONO,fontSize:11,color:DS.z500}}>Solver</span>
-                    <span style={{fontFamily:MONO,fontSize:11,color:DS.i500,fontWeight:600}}>OR-Tools CP-SAT</span>
-                  </div>
-                </div>
-              </Accordion>
-
-              {tm&&<>
-                <div style={{height:8}}/>
-                <Accordion title="Active Model" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={DS.i500} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>} open={false}>
-                  {[["Hours",`${tm.day_start_hour}:00 – ${tm.day_end_hour}:00`],["Window",`${tm.training_window_days} days`],["Slots/day",tm.slots_per_day],["Phase",snap?.phase??"—"]].map(([k,v])=>(
-                    <div key={k as string} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${DS.z100}`}}>
-                      <span style={{fontFamily:MONO,fontSize:12,color:DS.z400}}>{k}</span>
-                      <span style={{fontFamily:MONO,fontSize:12,color:DS.z700,fontWeight:600}}>{v}</span>
-                    </div>
-                  ))}
-                  {sim&&(
-                    <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0"}}>
-                      <span style={{fontFamily:MONO,fontSize:12,color:DS.z400}}>Run ID</span>
-                      <span style={{fontFamily:MONO,fontSize:12,color:DS.i600,fontWeight:600,letterSpacing:"0.06em"}}>{sim.simulation_id.slice(0,8).toUpperCase()}</span>
-                    </div>
-                  )}
-                </Accordion>
-              </>}
-            </div>
-          </aside>
-        )}
-
-        {/* Show-config button when sidecar is hidden */}
-        {!sidecar&&(
-          <div style={{flexShrink:0,display:"flex",alignItems:"flex-start",padding:"10px 6px 0"}}>
-            <button onClick={()=>setSidecar(true)}
-              style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.55)",backdropFilter:"blur(12px)",border:`1px solid rgba(210,205,200,0.55)`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:DS.i600,fontSize:13,fontWeight:700,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
-              ☰
-            </button>
-          </div>
-        )}
-
         {/* ── TIMELINE CANVAS ── */}
-        <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,padding:"8px 10px 0 8px",position:"relative"}}>
+        <main className="es-main" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,padding:"8px 10px 0 8px",position:"relative"}}>
 
           {/* Trainer mismatch warning — user changed rooms toggle without re-simulating */}
           {snap&&numTrainers!==simNumTrainers&&(
@@ -1906,45 +1650,24 @@ export default function WorkforceSim(){
                   <defs><pattern id="dots" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="11" cy="11" r="0.8" fill={DS.z300}/></pattern></defs>
                   <rect width="100%" height="100%" fill="url(#dots)"/>
                 </svg>
-                <div style={{position:"relative",textAlign:"left",maxWidth:480,padding:"0 24px",marginTop:"-8vh"}}>
-                  <div style={{fontFamily:SANS,fontSize:20,fontWeight:700,color:DS.z800,marginBottom:18,letterSpacing:"-0.02em",textAlign:"center"}}>Your Dynamic Training Canvas</div>
-                  <div style={{display:"flex",flexDirection:"column",gap:9}}>
-                    {/* Step 1 */}
-                    <div style={{display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,0.60)",borderRadius:12,padding:"11px 16px",border:`1px solid rgba(255,255,255,0.7)`,backdropFilter:"blur(16px)"}}>
-                      <div style={{flexShrink:0,padding:"7px 16px",borderRadius:9,background:DS.z900,
-                        fontFamily:SANS,fontSize:12,fontWeight:700,color:"white",
-                        whiteSpace:"nowrap",userSelect:"none"}}>
-                        Create Synthetic Data
+                <div role="status" style={{position:"relative",textAlign:"center",maxWidth:420,padding:"0 24px",marginTop:"-8vh"}}>
+                  {status==="error"?(
+                    <>
+                      <div style={{fontFamily:SANS,fontSize:18,fontWeight:700,color:DS.z800,marginBottom:8}}>The solver didn&apos;t answer</div>
+                      <div style={{fontFamily:SANS,fontSize:14,color:DS.z600,lineHeight:1.5,marginBottom:16}}>It may be waking up. Try again in a moment.</div>
+                      <DockBtn label="Try again" onClick={generate} wide/>
+                    </>
+                  ):(
+                    <>
+                      <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:14}}>
+                        {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:DS.i500,animation:`wrs-pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
                       </div>
-                      <span style={{fontFamily:SANS,fontSize:11,color:DS.z600,lineHeight:1.5}}>
-                        Open <strong style={{color:DS.z800}}>Create Synthetic Data</strong> panel and configure your workforce parameters.
-                      </span>
-                    </div>
-                    {/* Step 2 */}
-                    <div style={{display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,0.60)",borderRadius:12,padding:"11px 16px",border:`1px solid rgba(255,255,255,0.7)`,backdropFilter:"blur(16px)"}}>
-                      <div style={{flexShrink:0,padding:"7px 16px",borderRadius:9,
-                        background:"transparent",border:`1.5px solid ${DS.i200}`,
-                        fontFamily:SANS,fontSize:12,fontWeight:700,color:DS.i600,
-                        whiteSpace:"nowrap",userSelect:"none"}}>
-                        ◌ Simulate Data
+                      <div style={{fontFamily:SANS,fontSize:18,fontWeight:700,color:DS.z800}}>Building {siteName?siteName.split(",")[0]:"the site"}&apos;s workforce</div>
+                      <div style={{fontFamily:SANS,fontSize:14,color:DS.z600,lineHeight:1.5,marginTop:6}}>
+                        {prof.employees} people, {prof.courses} courses, a {daysBetween(prof.start_date,prof.end_date)}-day window, booked the way a busy site books by hand.
                       </div>
-                      <span style={{fontFamily:SANS,fontSize:11,color:DS.z600,lineHeight:1.5}}>
-                        Generate a synthetic workforce schedule — the <em style={{color:DS.i500}}>chaotic unoptimised state</em>.
-                      </span>
-                    </div>
-                    {/* Step 3 */}
-                    <div style={{display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,0.60)",borderRadius:12,padding:"11px 16px",border:`1px solid rgba(255,255,255,0.7)`,backdropFilter:"blur(16px)"}}>
-                      <div style={{flexShrink:0,padding:"7px 16px",borderRadius:9,
-                        background:`linear-gradient(135deg,${DS.i500},${DS.t500})`,
-                        fontFamily:SANS,fontSize:12,fontWeight:700,color:"white",
-                        opacity:0.5,whiteSpace:"nowrap",userSelect:"none"}}>
-                        Optimise schedule
-                      </div>
-                      <span style={{fontFamily:SANS,fontSize:11,color:DS.z600,lineHeight:1.5}}>
-                        Run CP-SAT optimisation to find the best possible training schedule.
-                      </span>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             ):(
@@ -1956,7 +1679,7 @@ export default function WorkforceSim(){
 
         {/* ── RIGHT INSPECTOR ── */}
         {snap&&(
-          <aside style={{
+          <aside className="es-insp" data-sel={selCell||selEmp||showOverflowPanel?"1":"0"} style={{
             width:268,flexShrink:0,
             background:"rgba(255,252,247,0.52)",
             backdropFilter:"blur(32px)",WebkitBackdropFilter:"blur(32px)",
@@ -2123,10 +1846,9 @@ export default function WorkforceSim(){
       </div>
 
       {/* ── FLOATING COMMAND DOCK — centred over the timeline canvas ── */}
-      <div style={{
+      <div className="es-dock" style={{
         position:"fixed",bottom:20,
-        // Left edge = sidecar width (if open) + show-config btn width (if closed); centred in remaining space
-        left: sidecar ? `calc(244px + (100vw - 244px) / 2)` : `calc((100vw) / 2)`,
+        left:"50%",
         transform:"translateX(-50%)",
         zIndex:50,
         display:"flex",alignItems:"center",gap:6,
@@ -2141,11 +1863,11 @@ export default function WorkforceSim(){
         {/* Status pip */}
         <div style={{display:"flex",alignItems:"center",gap:5,paddingRight:10,borderRight:`1px solid ${DS.z150}`}}>
           <div style={{width:7,height:7,borderRadius:"50%",background:statusColors[status],boxShadow:`0 0 8px ${statusColors[status]}88`,animation:isActive?"wrs-pulse 1s infinite":"none"}}/>
-          <span style={{fontFamily:MONO,fontSize:13,color:DS.z600,fontWeight:500,letterSpacing:"0.05em"}}>{statusLabels[status].toUpperCase()}</span>
+          <span className="es-dock-label" style={{fontFamily:MONO,fontSize:13,color:DS.z600,fontWeight:500,letterSpacing:"0.05em"}}>{statusLabels[status].toUpperCase()}</span>
         </div>
 
         {/* Ghost btn */}
-        <DockBtn label="◌  Simulate Data" onClick={generate} disabled={isActive} ghost/>
+        <DockBtn label="New workforce" onClick={generate} disabled={isActive} ghost/>
         {/* Divider */}
         <div style={{width:1,height:24,background:DS.z150}}/>
 
@@ -2204,7 +1926,7 @@ export default function WorkforceSim(){
             background:"rgba(8,6,20,0.92)",
             backdropFilter:"blur(18px)",WebkitBackdropFilter:"blur(18px)",
             border:"1px solid rgba(255,255,255,0.12)",
-            borderRadius:20,padding:"28px 40px",
+            borderRadius:20,padding:"28px 40px",margin:16,
             maxWidth:460,textAlign:"center",
             boxShadow:"0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(99,102,241,0.2)",
           }}>
