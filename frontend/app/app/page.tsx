@@ -1506,11 +1506,11 @@ export default function WorkforceSim(){
         <div style={{display:"flex",alignItems:"stretch",gap:0,padding:"10px 20px 10px 20px",minHeight:72}}>
 
           {/* ── LEFT: Wordmark + description ── */}
-          <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0,marginRight:24,paddingRight:24,borderRight:`1px solid ${DS.rim}`,cursor:"default",position:"relative"}}
+          <div style={{display:"flex",alignItems:"flex-start",gap:12,flexShrink:0,marginRight:24,paddingRight:24,borderRight:`1px solid ${DS.rim}`,cursor:"default",position:"relative"}}
             onMouseEnter={e=>{const t=document.getElementById("cpsat-tip"); if(t) t.style.opacity="1";}}
             onMouseLeave={e=>{const t=document.getElementById("cpsat-tip"); if(t) t.style.opacity="0";}}>
             {/* The family mark: a co-op blue disc, as Dairy Twin's top bar has (FAMILY.md). */}
-            <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" style={{flexShrink:0}}>
+            <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" style={{flexShrink:0,marginTop:2}}>
               <circle cx="17" cy="17" r="16" fill={DS.i500}/>
               <rect x="9" y="11" width="16" height="13" rx="2" fill="none" stroke="#fff" strokeWidth="1.8"/>
               <path d="M9 15h16M13 9v4M21 9v4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
@@ -1519,9 +1519,9 @@ export default function WorkforceSim(){
               <div style={{fontFamily:SERIF,fontSize:21,fontWeight:600,color:DS.z900,letterSpacing:"-0.01em",lineHeight:1.05,marginBottom:3}}>
                 Enterprise Scheduler
               </div>
-<div style={{fontFamily:MONO,fontSize:11,color:DS.z500,letterSpacing:"0.05em",fontWeight:500,marginBottom:5,textTransform:"uppercase"}}>{siteName ? `${siteName} · illustrative workforce` : "Proof of concept · CP-SAT optimisation"}</div>
+<div style={{fontFamily:SANS,fontSize:12,color:DS.z500,fontWeight:600,marginBottom:5}}>{siteName ?? "Blank workforce"} · <a href="/" style={{color:DS.i500,textDecoration:"none"}}>Change site</a></div>
   <div style={{fontFamily:SANS,fontSize:13,color:DS.z600,lineHeight:1.55,maxWidth:285}}>
-  Experience how Google&apos;s CP-SAT solver transforms complex workforce scheduling — from weeks of manual planning to seconds of computation using synthetic data.{" "}
+  Google&apos;s CP-SAT solver schedules a site&apos;s training around its shifts: weeks of manual planning in seconds. The people are illustrative.
               </div>
             </div>
             {/* CP-SAT hover tooltip */}
