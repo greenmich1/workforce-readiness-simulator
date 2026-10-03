@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Cesium's static build, copied from node_modules by postinstall
+/public/cesium

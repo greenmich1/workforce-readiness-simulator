@@ -71,7 +71,8 @@ interface Tooltip { empId:string; name:string; courseName:string; durationH:numb
 
 const API  = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const SOLVE_LIMIT_S      = 30;   // fast initial solve time limit
-const DEEP_SOLVE_LIMIT_S = 300;  // deep solve (user opt-in) time limit
+const DEEP_SOLVE_LIMIT_S = 240;  // deep solve (user opt-in) time limit
+const DEEP_SOLVE_MAX_S   = 270;  // stays inside the solver's 300 s request timeout on Cloud Run
 const SOLVER_MESSAGES = [
   "Initialising constraint model…",
   "Mapping employee-to-course relationships…",
@@ -145,6 +146,21 @@ function buildProjection(snap:Snapshot):Projection {
 // ─── Weekend filter (frontend enforcement) ────────────────────────────────────
 // Backend doesn't yet understand weekend restrictions, so we mark those placements
 // as overflow client-side before building the projection.
+/**
+ * How the solve ended. Newer backends send solve_metadata; the deployed one (2026-10) sends only
+ * metrics.solver, so read optimal / feasible from that when the metadata is missing.
+ */
+function solveMetaOf(snap:Snapshot|null|undefined):SolveMetadata|null{
+  if(!snap) return null;
+  if(snap.solve_metadata) return snap.solve_metadata;
+  const solver=snap.metrics?.solver;
+  if(solver!=="cpsat_optimal"&&solver!=="cpsat_feasible"&&solver!=="cpsat_intermediate") return null;
+  const optimal=solver==="cpsat_optimal";
+  return { status:optimal?"OPTIMAL":"FEASIBLE", is_optimal:optimal, is_feasible:true,
+    elapsed_seconds:Number((snap.metrics as {solve_seconds?:number}).solve_seconds??0), time_limit_seconds:SOLVE_LIMIT_S,
+    gap_percent:null, solutions_found:0, solver_label:solver };
+}
+
 function filterWeekendPlacements(snap:Snapshot, allowSat:boolean, allowSun:boolean):Snapshot {
   if(allowSat&&allowSun) return snap;
   if(!snap.time_model.start_date) return snap;
@@ -975,6 +991,8 @@ export default function WorkforceSim(){
   const [deepSolving,  setDeepSolving]  = useState(false);
   const [deepSolveStopped, setDeepSolveStopped] = useState(false);
   const [objectiveImprovement, setObjectiveImprovement] = useState<number|null>(null);
+  // The deep solve's stream never opened (the solver lost this workforce, or the network dropped).
+  const [deepSolveLost, setDeepSolveLost] = useState(false);
   const currentTimeLimitRef = useRef<number>(SOLVE_LIMIT_S);
   const lastStreamedSnapRef = useRef<Snapshot|null>(null);
   const [zoom,     setZoom]     = useState(1);   // 0.5 | 1 | 1.5 | 2 | 3
@@ -1243,7 +1261,7 @@ export default function WorkforceSim(){
   },[proj,selCell,sim]);
 
   const generate=async()=>{
-    setStatus("generating"); setSelCell(null); setSelEmp(null); setT0(null); setT1(null); setTip(null); setComplexity(null); setSolveMetadata(null); setDeepSolveStopped(false); setObjectiveImprovement(null);
+    setStatus("generating"); setSelCell(null); setSelEmp(null); setT0(null); setT1(null); setTip(null); setComplexity(null); setSolveMetadata(null); setDeepSolveStopped(false); setDeepSolveLost(false); setObjectiveImprovement(null);
     try{
       const enabledPatterns=SHIFT_DEFS.filter(d=>shiftEnabled[d.id as ShiftId]);
       const payload={
@@ -1284,7 +1302,7 @@ export default function WorkforceSim(){
     if(!sim) return;
     currentTimeLimitRef.current = SOLVE_LIMIT_S;
     lastStreamedSnapRef.current = null;
-    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving"); setSolveMetadata(null); setDeepSolving(false); setDeepSolveStopped(false);
+    setT0(Date.now()); setT1(null); setLive(0); setStatus("solving"); setSolveMetadata(null); setDeepSolving(false); setDeepSolveStopped(false); setDeepSolveLost(false);
     try{
       const res=await fetch(`${API}/simulate/solve/${sim.simulation_id}?num_rooms=${numTrainers}&time_limit_seconds=${SOLVE_LIMIT_S}`,{method:"POST"});
       if(!res.ok) throw new Error();
@@ -1292,7 +1310,7 @@ export default function WorkforceSim(){
       const data:Simulation=await res.json();
       data.snapshot=filterWeekendPlacements(data.snapshot,prof.allow_saturday,prof.allow_sunday);
       setSim(data);
-      setSolveMetadata(data.snapshot.solve_metadata??null);
+      setSolveMetadata(solveMetaOf(data.snapshot));
       const sc=data.snapshot?.metrics?.score??0;
       const co=data.snapshot?.metrics?.compression_percent??0;
       setScoreH(h=>[...h.slice(-9),sc]);
@@ -1316,7 +1334,7 @@ export default function WorkforceSim(){
     const snapToCommit = lastStreamedSnapRef.current ?? sim?.snapshot ?? null;
     if(snapToCommit){
       setSim(s=>s?{...s,snapshot:snapToCommit}:s);
-      setSolveMetadata(snapToCommit.solve_metadata??null);
+      setSolveMetadata(solveMetaOf(snapToCommit));
       setScoreH(h=>[...h.slice(-9),snapToCommit.metrics?.score??0]);
       setCompH(h=>[...h.slice(-9),snapToCommit.metrics?.compression_percent??0]);
       startAnim();
@@ -1326,15 +1344,20 @@ export default function WorkforceSim(){
 
   const deepSolve=async()=>{
     if(!sim||deepSolving) return;
-    setDeepSolving(true); setDeepSolveStopped(false);
+    setDeepSolving(true); setDeepSolveStopped(false); setDeepSolveLost(false);
     lastStreamedSnapRef.current = null;
-    const timeLimit=Math.max(DEEP_SOLVE_LIMIT_S, Math.ceil(complexity?.estimated_seconds??DEEP_SOLVE_LIMIT_S));
+    const timeLimit=Math.min(DEEP_SOLVE_MAX_S, Math.max(DEEP_SOLVE_LIMIT_S, Math.ceil(complexity?.estimated_seconds??DEEP_SOLVE_LIMIT_S)));
     currentTimeLimitRef.current = timeLimit;
+    const prevT0=t0, prevT1=t1;
     setT0(Date.now()); setT1(null); setLive(0); setStatus("solving");
-    try{
+    // The solver keeps simulations in memory per Cloud Run instance, so a stream can land on an
+    // instance that has never seen this one and fail before it opens. Retry a couple of times.
+    const open=(attempt:number)=>{
+      let opened=false;
       const es=new EventSource(`${API}/simulate/solve-stream/${sim.simulation_id}?time_limit_seconds=${timeLimit}&num_rooms=${numTrainers}`);
       deepSolveEsRef.current = es;
       es.onmessage=(ev)=>{
+        opened=true;
         try{
           const item=JSON.parse(ev.data);
 
@@ -1348,7 +1371,7 @@ export default function WorkforceSim(){
             const snap=filterWeekendPlacements(item.snapshot,prof.allow_saturday,prof.allow_sunday);
             lastStreamedSnapRef.current = snap;
             setSim(s=>s?{...s,snapshot:snap}:s);
-            setSolveMetadata(snap.solve_metadata??null);
+            setSolveMetadata(solveMetaOf(snap));
             startAnim();
           }
           if(item.type==="done"){
@@ -1363,20 +1386,25 @@ export default function WorkforceSim(){
               const snap=filterWeekendPlacements(rawSnap,prof.allow_saturday,prof.allow_sunday);
               lastStreamedSnapRef.current = snap;
               setSim(s=>s?{...s,snapshot:snap}:s);
-              setSolveMetadata(snap.solve_metadata??null);
+              setSolveMetadata(solveMetaOf(snap));
               setScoreH(h=>[...h.slice(-9),snap.metrics?.score??0]);
               setCompH(h=>[...h.slice(-9),snap.metrics?.compression_percent??0]);
             }
-            setStatus("solved"); setDeepSolving(false); startAnim();
+            setStatus("solved"); setDeepSolving(false); setDeepSolveStopped(true); startAnim();
             setScoreFlash(true); setTimeout(()=>setScoreFlash(false),2800);
           }
-          if(item.type==="timeout"||item.type==="error"){
-            es.close(); setT1(Date.now()); setStatus("solved"); setDeepSolving(false);
-          }
+          if(item.type==="timeout"||item.type==="error"){ es.close(); stopDeepSolve(); }
         }catch{/*ignore*/}
       };
-      es.onerror=()=>{ es.close(); setT1(Date.now()); setStatus("solved"); setDeepSolving(false); };
-    }catch{ setT1(Date.now()); setStatus("error"); setDeepSolving(false); }
+      es.onerror=()=>{
+        es.close();
+        if(opened){ stopDeepSolve(); return; }   // cut off mid-run: keep the best schedule streamed so far
+        if(attempt<3){ setTimeout(()=>open(attempt+1),800*attempt); return; }
+        deepSolveEsRef.current=null;
+        setT0(prevT0); setT1(prevT1); setStatus("solved"); setDeepSolving(false); setDeepSolveLost(true);
+      };
+    };
+    try{ open(1); }catch{ setT1(Date.now()); setStatus("error"); setDeepSolving(false); }
   };
 
   const snap=sim?.snapshot, m=snap?.metrics, tm=snap?.time_model;
@@ -1772,9 +1800,14 @@ export default function WorkforceSim(){
             {status==="solved"&&solveMetadata&&!solveMetadata.is_optimal&&!deepSolving&&!deepSolveStopped&&(
               <div style={{padding:"10px 12px",background:"rgba(245,243,255,0.80)",border:`1px solid ${DS.i200}`,borderRadius:12,animation:"wrs-fadein 0.3s ease"}}>
                 <div style={{fontFamily:MONO,fontSize:11,color:DS.i600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>Result: Feasible</div>
+                {deepSolveLost&&(
+                  <div role="status" style={{fontFamily:SANS,fontSize:12,color:DS.z700,lineHeight:1.5,marginBottom:8,padding:"6px 8px",background:"rgba(255,251,235,0.9)",border:"1px solid #fcd34d",borderRadius:8}}>
+                    The deeper solve couldn&apos;t reach the solver. Try again, or choose <strong>New workforce</strong> if it keeps failing.
+                  </div>
+                )}
                 <div style={{fontFamily:SANS,fontSize:13,color:DS.z700,lineHeight:1.6,marginBottom:8}}>
-                  The 30s solve found a valid schedule. The{" "}
-                  {solveMetadata.gap_percent!=null&&<strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong>} figure is CP-SAT's <em>proof gap</em> — it reflects how hard it is to mathematically certify optimality, not how much better the schedule could be. The actual schedule quality is often already excellent.
+                  The 30s solve found a valid schedule, but CP-SAT hasn&apos;t yet proved it is the best one.
+                  {solveMetadata.gap_percent!=null&&<> The <strong style={{color:DS.i600}}>{solveMetadata.gap_percent.toFixed(1)}%</strong> proof gap reflects how hard optimality is to certify, not how much better the schedule could be.</>}
                 </div>
                 <div style={{fontFamily:SANS,fontSize:12,color:DS.z600,lineHeight:1.6,marginBottom:6}}>
                   Click <strong style={{color:DS.i600}}>Deeper Solve</strong> below to give CP-SAT more time. It may find a better arrangement, or confirm this is already near-optimal. You get one shot at this — stop when satisfied.
@@ -1799,11 +1832,13 @@ export default function WorkforceSim(){
                   </div>
                 ) : (
                   <div style={{fontFamily:SANS,fontSize:13,color:DS.z700,lineHeight:1.6}}>
-                    No further improvement was found. This means the initial 30s solve was already <strong>near-optimal</strong> for this problem. The 51% "gap" is a mathematical proof difficulty — not a measure of schedule quality.
+                    {compH.length>1&&compH[compH.length-1]>compH[compH.length-2]
+                      ? <>The deeper solve packed the training tighter: the optimisation delta rose from <strong>{compH[compH.length-2]}%</strong> to <strong style={{color:DS.t600}}>{compH[compH.length-1]}%</strong>.</>
+                      : <>No further improvement was found, so the 30s solve was already <strong>near-optimal</strong> for this workforce.</>}
                   </div>
                 )}
                 <div style={{fontFamily:SANS,fontSize:12,color:DS.z500,lineHeight:1.5,marginTop:6}}>
-                  Click <strong>Simulate Data</strong> to run a new scenario.
+                  Choose <strong>New workforce</strong> to run another.
                 </div>
               </div>
             )}
@@ -1889,7 +1924,7 @@ export default function WorkforceSim(){
           <DockBtn
             label={
               <span style={{display:"flex",alignItems:"center",gap:7}}>
-                <span>⏳ Deeper Solve</span>
+                <span>{deepSolveLost?"⚠ Retry Deeper Solve":"⏳ Deeper Solve"}</span>
                 {complexity&&(
                   <span style={{
                     fontFamily:MONO,fontSize:12,
@@ -1907,7 +1942,7 @@ export default function WorkforceSim(){
           />
         ) : status==="solved" && solveMetadata && !solveMetadata.is_optimal && deepSolveStopped ? (
           // After user clicked "Good enough" — grey out, no further action
-          <DockBtn label="✓ Stopped — simulate to restart" onClick={()=>{}} disabled wide/>
+          <DockBtn label="✓ Best schedule found" onClick={()=>{}} disabled wide/>
         ) : (
           // Default: Optimise schedule
           <DockBtn label="Optimise schedule" onClick={solve} disabled={!sim||isActive} wide/>

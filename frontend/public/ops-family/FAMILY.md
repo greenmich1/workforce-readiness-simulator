@@ -11,7 +11,7 @@ Canonical files live in `greenwell/shared/ops-family/` and are copied into each 
 | --- | --- |
 | `family.css` | Tokens (colour, type, shape) and base pieces: `.ops-card`, `.ops-kpi`, `.ops-chip`, `.ops-btn`, `.ops-seg`, `.num` |
 | `fonts.html` | The one font link (Newsreader, Figtree, JetBrains Mono); Next.js uses `next/font` for the same three |
-| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the three apps and the portfolio |
+| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the three apps, with "← Situation Room" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file) |
 
 ## The language
 
