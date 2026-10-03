@@ -3,7 +3,8 @@
 
    <script type="module" src="./ops-suite.js"></script>
    <ops-suite current="dairy-twin"></ops-suite>
-   <ops-suite current="maritime" portfolio="https://…" theme="night"></ops-suite>
+   <ops-suite current="maritime" theme="night"></ops-suite>
+   <ops-suite current="scheduler" room="situation"></ops-suite>   (the room this project hangs off)
 
    A framework-free custom element, so it works the same in plain JS, React and Next.js. Its styles
    live in its shadow root (a host page's CSS cannot reach in); it reads the family's colour and font
@@ -15,6 +16,10 @@ const APPS = [
   { id: 'maritime', name: 'Maritime OS', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
   { id: 'scheduler', name: 'Enterprise Scheduler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
 ];
+/** Greenwell's rooms. "Back" goes to the room the project hangs off (the Situation Room for these three). */
+const ROOMS = {
+  situation: { name: 'Situation Room', url: 'https://greenwell.vercel.app/situation' },
+};
 const PORTFOLIO = 'https://my-new-webapp-kappa.vercel.app/';
 
 const css = `
@@ -37,7 +42,7 @@ a:focus-visible { outline: 2px solid var(--sky, #00AEEF); outline-offset: 1px; }
 `;
 
 class OpsSuite extends HTMLElement {
-  static get observedAttributes() { return ['current', 'portfolio', 'theme']; }
+  static get observedAttributes() { return ['current', 'room', 'portfolio', 'theme']; }
 
   connectedCallback() { this.render(); }
   attributeChangedCallback() { if (this.shadowRoot) this.render(); }
@@ -45,7 +50,9 @@ class OpsSuite extends HTMLElement {
   render() {
     const root = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
     const current = this.getAttribute('current');
-    const portfolio = this.getAttribute('portfolio') || PORTFOLIO;
+    const room = ROOMS[this.getAttribute('room') || 'situation'] ?? ROOMS.situation;
+    // `portfolio` overrides the room link (kept for pages written before the rooms existed).
+    const back = this.getAttribute('portfolio') ? { name: 'Portfolio', url: this.getAttribute('portfolio') } : room;
     if (this.getAttribute('theme')) this.dataset.theme = this.getAttribute('theme');
     root.innerHTML = `
       <style>${css}</style>
@@ -54,10 +61,10 @@ class OpsSuite extends HTMLElement {
         <ul>
           ${APPS.map((a) => `<li><a class="app" href="${a.url}" title="${a.what}" ${a.id === current ? 'aria-current="page"' : ''}>${a.name}</a></li>`).join('')}
         </ul>
-        <a class="back" href="${portfolio}">← <span>Portfolio</span></a>
+        <a class="back" href="${back.url}" aria-label="Back to the ${back.name}">← <span>${back.name}</span></a>
       </nav>`;
   }
 }
 
 if (!customElements.get('ops-suite')) customElements.define('ops-suite', OpsSuite);
-export { APPS, PORTFOLIO };
+export { APPS, ROOMS, PORTFOLIO };
