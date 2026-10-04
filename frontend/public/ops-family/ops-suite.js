@@ -5,6 +5,7 @@
    <ops-suite current="dairy-twin"></ops-suite>
    <ops-suite current="maritime" theme="night"></ops-suite>
    <ops-suite current="scheduler" room="situation"></ops-suite>   (the room this project hangs off)
+   <ops-suite current="seal-sentinel" theme="night"></ops-suite>
 
    A framework-free custom element, so it works the same in plain JS, React and Next.js. Its styles
    live in its shadow root (a host page's CSS cannot reach in); it reads the family's colour and font
@@ -15,6 +16,7 @@ const APPS = [
   { id: 'dairy-twin', name: 'Dairy Twin', url: 'https://dairy-twin.vercel.app/', what: 'The plant' },
   { id: 'maritime', name: 'Maritime OS', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
   { id: 'scheduler', name: 'Enterprise Scheduler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
+  { id: 'seal-sentinel', name: 'Seal Sentinel', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
 ];
 /** Greenwell's rooms. "Back" goes to the room the project hangs off (the Situation Room for these three). */
 const ROOMS = {
@@ -59,10 +61,15 @@ class OpsSuite extends HTMLElement {
       <nav aria-label="SAP and AI projects">
         <span class="suite" aria-hidden="true">SAP &amp; AI</span>
         <ul>
-          ${APPS.map((a) => `<li><a class="app" href="${a.url}" title="${a.what}" ${a.id === current ? 'aria-current="page"' : ''}>${a.name}</a></li>`).join('')}
+          ${APPS.filter((a) => a.live !== false || a.id === current).map((a) => `<li><a class="app" href="${a.url}" title="${a.what}" ${a.id === current ? 'aria-current="page"' : ''}>${a.name}</a></li>`).join('')}
         </ul>
         <a class="back" href="${back.url}" aria-label="Back to the ${back.name}">← <span>${back.name}</span></a>
       </nav>`;
+    // on a narrow screen the tabs scroll: bring the current one into view
+    requestAnimationFrame(() => {
+      const cur = root.querySelector('[aria-current="page"]'), ul = root.querySelector('ul'); if (!cur || ul.scrollWidth <= ul.clientWidth) return;
+      ul.scrollLeft += Math.max(0, cur.getBoundingClientRect().right - ul.getBoundingClientRect().right + 4);
+    });
   }
 }
 

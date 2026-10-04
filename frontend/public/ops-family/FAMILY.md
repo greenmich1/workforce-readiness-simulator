@@ -11,7 +11,7 @@ Canonical files live in `greenwell/shared/ops-family/` and are copied into each 
 | --- | --- |
 | `family.css` | Tokens (colour, type, shape) and base pieces: `.ops-card`, `.ops-kpi`, `.ops-chip`, `.ops-btn`, `.ops-seg`, `.num` |
 | `fonts.html` | The one font link (Newsreader, Figtree, JetBrains Mono); Next.js uses `next/font` for the same three |
-| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the three apps, with "← Situation Room" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file) |
+| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the apps (the scheduler, twin and order book, and Seal Sentinel once it is live), with "← Situation Room" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file) |
 
 ## The language
 
@@ -56,6 +56,7 @@ shipment, an agent's schedule.
 | Dairy Twin | `dairy-twin` | https://dairy-twin.vercel.app/ |
 | Maritime OS | `maritime-intel-os` (`frontend/`) | Vercel, from `main` |
 | Enterprise Scheduler | `workforce-readiness-simulator/v0.2-Claude` (`frontend/`; **public** repo) | https://workforce-readiness-simulator.vercel.app/ |
+| Seal Sentinel (Vision Room) | `greenwell/seal-sentinel` (own git repo; darkroom page, `theme="night"`) | https://seal-sentinel.vercel.app/ (live 2026-10-04, in the Situation Room). Its tab is in every app's header (synced and redeployed 2026-10-04). An app marked `live: false` in `APPS` shows only on its own page |
 
 Enterprise Scheduler opens on **Choose a site** (tiles with an icon per kind of place, 2026-10-03).
 Its sites and offices (`frontend/lib/sites.ts`) are a New Zealand dairy co-operative's manufacturing
