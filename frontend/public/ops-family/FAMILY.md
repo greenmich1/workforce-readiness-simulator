@@ -11,7 +11,7 @@ Canonical files live in `greenwell/shared/ops-family/` and are copied into each 
 | --- | --- |
 | `family.css` | Tokens (colour, type, shape) and base pieces: `.ops-card`, `.ops-kpi`, `.ops-chip`, `.ops-btn`, `.ops-seg`, `.num` |
 | `fonts.html` | The one font link (Newsreader, Figtree, JetBrains Mono); Next.js uses `next/font` for the same three |
-| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the apps (the scheduler, twin and order book, and Seal Sentinel once it is live), with "← Situation Room" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file) |
+| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the apps (Dairy Twin, Maritime OS, Seal Sentinel, then Enterprise Scheduler, always last), with "← SAP Autonomous Enterprise" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file) |
 
 ## The language
 

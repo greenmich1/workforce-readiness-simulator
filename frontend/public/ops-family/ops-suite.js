@@ -19,9 +19,10 @@ const APPS = [
   { id: 'seal-sentinel', name: 'Seal Sentinel', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
   { id: 'scheduler', name: 'Enterprise Scheduler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
 ];
-/** Greenwell's rooms. "Back" goes to the room the project hangs off (the Situation Room for these three). */
+/** Greenwell's rooms. "Back" goes to the room the project hangs off (SAP Autonomous Enterprise for these
+ *  four; owner, 2026-10-09). The key stays `situation`, so existing pages need no change. */
 const ROOMS = {
-  situation: { name: 'Situation Room', url: 'https://greenwell.vercel.app/situation' },
+  situation: { name: 'SAP Autonomous Enterprise', url: 'https://greenwell.vercel.app/autonomous-enterprise' },
 };
 const PORTFOLIO = 'https://my-new-webapp-kappa.vercel.app/';
 
