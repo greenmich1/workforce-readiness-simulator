@@ -12,11 +12,12 @@
    tokens from the page when they are set, and falls back to the light values. 40 px tall, keyboard
    reachable, labelled. */
 
+/** The tabs, in order: Enterprise Scheduler always last (owner, 2026-10-09). */
 const APPS = [
   { id: 'dairy-twin', name: 'Dairy Twin', url: 'https://dairy-twin.vercel.app/', what: 'The plant' },
   { id: 'maritime', name: 'Maritime OS', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
-  { id: 'scheduler', name: 'Enterprise Scheduler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
   { id: 'seal-sentinel', name: 'Seal Sentinel', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
+  { id: 'scheduler', name: 'Enterprise Scheduler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
 ];
 /** Greenwell's rooms. "Back" goes to the room the project hangs off (the Situation Room for these three). */
 const ROOMS = {
