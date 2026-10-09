@@ -6,17 +6,19 @@
    <ops-suite current="maritime" theme="night"></ops-suite>
    <ops-suite current="scheduler" room="situation"></ops-suite>   (the room this project hangs off)
    <ops-suite current="seal-sentinel" theme="night"></ops-suite>
+   <ops-suite current="collect"></ops-suite>
 
    A framework-free custom element, so it works the same in plain JS, React and Next.js. Its styles
    live in its shadow root (a host page's CSS cannot reach in); it reads the family's colour and font
    tokens from the page when they are set, and falls back to the light values. 40 px tall, keyboard
    reachable, labelled. */
 
-/** The tabs, in order: Enterprise Scheduler always last (owner, 2026-10-09). */
+/** The tabs in the pipeline's order (Collect, Make, Inspect, Ship; 2026-10-09), Enterprise Scheduler always last. */
 const APPS = [
+  { id: 'collect', name: 'Collect', url: 'https://milk-collect-nine.vercel.app/', what: 'Milk from farm to site' },
   { id: 'dairy-twin', name: 'Dairy Twin', url: 'https://dairy-twin.vercel.app/', what: 'The plant' },
-  { id: 'maritime', name: 'Maritime OS', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
   { id: 'seal-sentinel', name: 'Seal Sentinel', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
+  { id: 'maritime', name: 'Maritime OS', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
   { id: 'scheduler', name: 'Enterprise Scheduler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
 ];
 /** Greenwell's rooms. "Back" goes to the room the project hangs off (SAP Autonomous Enterprise for these

@@ -56,6 +56,7 @@ shipment, an agent's schedule.
 | Dairy Twin | `dairy-twin` | https://dairy-twin.vercel.app/ |
 | Maritime OS | `maritime-intel-os` (`frontend/`) | Vercel, from `main` |
 | Enterprise Scheduler | `workforce-readiness-simulator/v0.2-Claude` (`frontend/`; **public** repo) | https://workforce-readiness-simulator.vercel.app/ |
+| Collect | `greenwell/collect` (own git repo; header only) | https://milk-collect-nine.vercel.app/ (2026-10-09; tabs now in pipeline order) |
 | Seal Sentinel (Vision Room) | `greenwell/seal-sentinel` (own git repo; darkroom page, `theme="night"`) | https://seal-sentinel.vercel.app/ (live 2026-10-04, in the Situation Room). Its tab is in every app's header (synced and redeployed 2026-10-04). An app marked `live: false` in `APPS` shows only on its own page |
 
 Enterprise Scheduler opens on **Choose a site** (tiles with an icon per kind of place, 2026-10-03).
