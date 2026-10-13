@@ -118,7 +118,7 @@ export default function SiteGlobe({ handle, mode, view, hot, reducedMotion, stil
       // look has none either).
       scene.skyAtmosphere.show = false;
       scene.globe.showGroundAtmosphere = false;
-      // Blue Marble's own open-ocean blue, so the hairline the tiles leave at 180° doesn't show.
+      // Blue Marble's own open-ocean blue, under the imagery while tiles load.
       scene.globe.baseColor = C.Color.fromBytes(16, 44, 91);
       scene.fog.enabled = true;
       if (scene.sun) scene.sun.show = false;
@@ -129,16 +129,32 @@ export default function SiteGlobe({ handle, mode, view, hot, reducedMotion, stil
         C.TileMapServiceImageryProvider.fromUrl(C.buildModuleUrl("Assets/Textures/NaturalEarthII")),
       );
       widget.imageryLayers.add(natural);
-      const marble = new C.ImageryLayer(new C.UrlTemplateImageryProvider({
+      const blueMarble = new C.UrlTemplateImageryProvider({
         // WMTS REST is z/y/x (row before column), as Maritime's basemaps.ts notes.
         url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg",
         tilingScheme: new C.WebMercatorTilingScheme(),
         maximumLevel: 8,
         credit: "Blue Marble · NASA EOSDIS GIBS",
-      }));
-      // The tiles carry a dark hairline at 180°, just east of New Zealand. Cut it out; once Natural Earth is
-      // hidden (below) the sliver shows the base colour, which is Blue Marble's ocean there.
-      marble.cutoutRectangle = C.Rectangle.fromDegrees(179.94, -90, 180, 90);
+      });
+      // The easternmost tiles have no data for their last 0.044° before 180° (just east of New Zealand): a black
+      // strip 2^(level-5) pixels wide that drew a hairline down the globe, and JPEG ringing darkens a few columns
+      // inside it. Fill three times that width (under 10 km of ocean) from the first clean column, so the seam carries
+      // on the imagery either side instead of a fixed colour.
+      const fetchTile = blueMarble.requestImage.bind(blueMarble);
+      blueMarble.requestImage = (x: number, y: number, level: number, request?: any) => {
+        const p = fetchTile(x, y, level, request);
+        if (!p || x !== blueMarble.tilingScheme.getNumberOfXTilesAtLevel(level) - 1) return p;
+        return Promise.resolve(p).then((img: any) => {
+          if (!img) return img;
+          const w = img.width, h = img.height, n = 3 * Math.max(1, 2 ** (level - 5)) + 2;
+          const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          const ctx = cv.getContext("2d")!; ctx.drawImage(img, 0, 0);
+          ctx.drawImage(cv, w - n - 1, 0, 1, h, w - n, 0, n, h);
+          // hand back the same kind of image: Cesium's tile bitmaps arrive already flipped for upload, a canvas does not
+          return typeof ImageBitmap !== "undefined" && img instanceof ImageBitmap ? createImageBitmap(cv) : cv;
+        });
+      };
+      const marble = new C.ImageryLayer(blueMarble);
       widget.imageryLayers.add(marble);
 
       const ctl = scene.screenSpaceCameraController;
