@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Enterprise Scheduler",
+  title: "Enterprise Scheduler · The people",
   description: "Training schedules for a dairy manufacturer-exporter's sites and offices, optimised with Google's CP-SAT constraint solver.",
 };
 
