@@ -447,17 +447,16 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
   return(
     <div style={{
       flex:1, minWidth:0, position:"relative",
-      background:"rgba(255,255,255,0.55)",
-      backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
-      border:`1px solid rgba(255,255,255,0.75)`,
-      borderRadius:14,
-      padding:"9px 12px 8px",
-      boxShadow:`0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.8) inset, 0 2px 0 ${accent}18`,
+      // the family's KPI chip (Plan, Collect, Dairy Twin: .kpi), with room for this app's sub-line
+      background:"rgba(255,255,255,0.6)",
+      border:`1px solid ${DS.rim}`,
+      borderRadius:10,
+      padding:"6px 10px 6px",
       display:"flex", flexDirection:"column", justifyContent:"space-between",
       cursor:onClick?"pointer":tooltip?"help":"default",
       transition:"background 0.15s",
       animation:flash?"score-flash 2.8s ease forwards":"none",
-      minHeight:92,height:92,
+      minHeight:66,height:66,
     }}
       onMouseEnter={()=>setHov(true)}
       onMouseLeave={()=>setHov(false)}
@@ -465,30 +464,30 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
     >
       {/* Label row — fixed 2-line height so numbers always align */}
       <div style={{
-        fontFamily:MONO, fontSize:11.5, fontWeight:500,
-        color, letterSpacing:"0.09em", textTransform:"uppercase",
-        lineHeight:1.35, minHeight:24, display:"flex", alignItems:"flex-start",
+        fontFamily:SANS, fontSize:10.5, fontWeight:600,
+        color:DS.z500, letterSpacing:"0.04em", textTransform:"uppercase",
+        lineHeight:1.3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
       }}>{label}</div>
 
       {/* Number row — always at same vertical position */}
       <div style={{display:"flex",alignItems:"baseline",gap:0,marginTop:2}}>
         {/* Number in fixed tabular font so width doesn't wiggle */}
         <span style={{
-          fontFamily:MONO, fontSize:28, fontWeight:700,
+          fontFamily:MONO, fontSize:19, fontWeight:600,
           color:DS.z900, letterSpacing:"-0.02em", lineHeight:1,
           fontVariantNumeric:"tabular-nums",
           animation:flash?"score-flash-text 2.8s ease forwards":"none",
         }}>{display}</span>
         {/* Unit — fixed-width span so it never shifts */}
         {unit&&<span style={{
-          fontFamily:MONO,fontSize:13,color,fontWeight:600,
+          fontFamily:MONO,fontSize:12,color:DS.z500,fontWeight:600,
           marginLeft:2,lineHeight:1,alignSelf:"flex-end",marginBottom:2,
           display:"inline-block",minWidth:16,
         }}>{unit}</span>}
       </div>
 
       {/* Fixed-height bottom zone: progress bar (if present) + sub-label */}
-      <div style={{minHeight:24,display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:2,marginTop:4}}>
+      <div style={{minHeight:12,display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:2,marginTop:2}}>
         {progress!=null&&(
           <div style={{height:3,background:"rgba(0,0,0,0.08)",borderRadius:2,overflow:"hidden"}}>
             <div style={{
@@ -500,8 +499,8 @@ function MetricTile({label,display,unit,sub,spark,color,accent,tooltip,flash,onC
             }}/>
           </div>
         )}
-        {sub&&<div style={{fontFamily:MONO,fontSize:11,color:DS.z400,lineHeight:1.45,
-          display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{sub}</div>}
+        {sub&&<div style={{fontFamily:SANS,fontSize:10.5,color:DS.z400,lineHeight:1.3,
+          whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sub}</div>}
       </div>
 
       {/* Sparkline */}
@@ -1469,10 +1468,8 @@ export default function WorkforceSim(){
               <div style={{fontFamily:SERIF,fontSize:21,fontWeight:600,color:DS.z900,letterSpacing:"-0.01em",lineHeight:1.05,marginBottom:3}}>
                 Enterprise Scheduler
               </div>
-<div style={{fontFamily:SANS,fontSize:12,color:DS.z500,fontWeight:600,marginBottom:5}}>{siteName ?? "Blank workforce"} · <a href="/" style={{color:DS.i500,textDecoration:"none"}}>Change site</a></div>
-  <div className="es-desc" style={{fontFamily:SANS,fontSize:13,color:DS.z600,lineHeight:1.55,maxWidth:285}}>
-  Google&apos;s CP-SAT solver schedules a site&apos;s training around its shifts: weeks of manual planning in seconds. The people are illustrative.
-              </div>
+<div style={{fontFamily:SANS,fontSize:11.5,color:DS.z500,fontWeight:500,whiteSpace:"nowrap"}}>Enabler · training around shifts · illustrative people</div>
+<div style={{fontFamily:SANS,fontSize:12,color:DS.z500,fontWeight:600,marginTop:3}}>{siteName ?? "Blank workforce"} · <a href="/" style={{color:DS.i500,textDecoration:"none"}}>Change site</a></div>
             </div>
             {/* CP-SAT hover tooltip */}
             <div id="cpsat-tip" style={{

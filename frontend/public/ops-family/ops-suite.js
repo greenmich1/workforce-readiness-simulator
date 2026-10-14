@@ -7,14 +7,16 @@
    <ops-suite current="scheduler" room="situation"></ops-suite>   (the room this project hangs off)
    <ops-suite current="seal-sentinel" theme="night"></ops-suite>
    <ops-suite current="collect"></ops-suite>
+   <ops-suite current="plan"></ops-suite>
 
    A framework-free custom element, so it works the same in plain JS, React and Next.js. Its styles
    live in its shadow root (a host page's CSS cannot reach in); it reads the family's colour and font
    tokens from the page when they are set, and falls back to the light values. 40 px tall, keyboard
    reachable, labelled. */
 
-/** The tabs in the pipeline's order (Collect, Make, Inspect, Ship; 2026-10-09), Enterprise Scheduler always last. */
+/** The tabs in the pipeline's order (Plan, Collect, Make, Inspect, Ship; 2026-10-15), Enterprise Scheduler always last. */
 const APPS = [
+  { id: 'plan', name: 'Plan', url: 'https://milk-plan.vercel.app/', what: 'Milk to market' },
   { id: 'collect', name: 'Collect', url: 'https://milk-collect-nine.vercel.app/', what: 'Milk from farm to site' },
   { id: 'dairy-twin', name: 'Dairy Twin', url: 'https://dairy-twin.vercel.app/', what: 'The plant' },
   { id: 'seal-sentinel', name: 'Seal Sentinel', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
