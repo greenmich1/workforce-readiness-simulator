@@ -97,6 +97,11 @@
   --uv-ink: #B9A9FF;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .35);
   --shadow-lift: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 40px rgba(0, 0, 0, .45);
+  /* the tiers, lifted to read on navy */
+  --t-sap: #5B9BEF;
+  --t-mywave: #2BB5B2;
+  --t-gap: #9B86FF;
+  --t-core: #8C9AB2;
 }
 
 /* ---- base pieces ---- */
@@ -197,5 +202,18 @@
 /* ---- a hand-off to the next stage (family.js handoffURL): a link under a decided card ---- */
 .ops-handoff { display: inline-flex; align-items: center; gap: 6px; margin: 2px 12px 12px; padding: 6px 11px; border-radius: 999px; border: 1px solid #CFC5F7; background: var(--uv-soft); color: var(--uv-ink); font: 600 12px var(--sans); text-decoration: none; width: fit-content; }
 .ops-handoff:hover { background: #E4DEFC; }
+
+/* ---- the scope dial, the value card and hand-offs at night (Seal Sentinel; Maritime OS's night toggle) ---- */
+[data-theme="night"] .ops-scope::before { background: var(--line-2); }
+[data-theme="night"] .ops-scope button i { background: var(--paper); border-color: var(--line-2); }
+[data-theme="night"] .ops-scope button.lit i { background: currentColor; border-color: currentColor; }
+[data-theme="night"] .ops-scope button[aria-pressed="true"] i { background: var(--paper); border-color: currentColor; }
+[data-theme="night"] .ops-scope-cmp { background: var(--well); }
+[data-theme="night"] .ops-scope-cmp:hover { background: rgba(255, 255, 255, .1); }
+[data-theme="night"] .ops-seg { background: var(--well); }
+[data-theme="night"] .ops-value .me { background: var(--blue-soft); }
+[data-theme="night"] .ops-vbar { background: var(--line); }
+[data-theme="night"] .ops-handoff { border-color: rgba(155, 134, 255, .4); }
+[data-theme="night"] .ops-handoff:hover { background: rgba(155, 134, 255, .24); }
 .ops-handoff:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
 .ops-handoff small { font-weight: 500; color: var(--ink-3); }
