@@ -75,6 +75,8 @@ const API  = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const SOLVE_LIMIT_S      = 30;   // fast initial solve time limit
 const DEEP_SOLVE_LIMIT_S = 240;  // deep solve (user opt-in) time limit
 const DEEP_SOLVE_MAX_S   = 270;  // stays inside the solver's 300 s request timeout on Cloud Run
+// How long a deeper solve actually runs: the estimate, kept between the default budget and the request timeout.
+const deepLimitS=(est?:number)=>Math.min(DEEP_SOLVE_MAX_S, Math.max(DEEP_SOLVE_LIMIT_S, Math.ceil(est??DEEP_SOLVE_LIMIT_S)));
 const SOLVER_MESSAGES = [
   "Initialising constraint model…",
   "Mapping employee-to-course relationships…",
@@ -1355,7 +1357,7 @@ export default function WorkforceSim(){
     if(!sim||deepSolving) return;
     setDeepSolving(true); setDeepSolveStopped(false); setDeepSolveLost(false);
     lastStreamedSnapRef.current = null;
-    const timeLimit=Math.min(DEEP_SOLVE_MAX_S, Math.max(DEEP_SOLVE_LIMIT_S, Math.ceil(complexity?.estimated_seconds??DEEP_SOLVE_LIMIT_S)));
+    const timeLimit=deepLimitS(complexity?.estimated_seconds);
     currentTimeLimitRef.current = timeLimit;
     const prevT0=t0, prevT1=t1;
     setT0(Date.now()); setT1(null); setLive(0); setStatus("solving");
@@ -1740,7 +1742,7 @@ export default function WorkforceSim(){
             display:"flex",flexDirection:"column",gap:8,
           }}>
             <ScopePanel tier={aiTier} onTier={chooseTier} rows={tierRows}
-              pending={{ mywave:"Optimise to run", gap: complexity?`Run, about ${Math.max(1,Math.round(complexity.estimated_seconds/60))} min`:"Run" }}
+              pending={{ mywave:"Optimise to run", gap: complexity?`Run, up to ${Math.round(deepLimitS(complexity.estimated_seconds)/60*2)/2} min`:"Run" }}
               note={`The same workforce at each scope. SAP AI is the rule-based plan (each request booked where it first fits); + MyWave runs the CP-SAT optimiser for ${SOLVE_LIMIT_S} s; + Gap-fill keeps searching until the schedule is proven best${fastOptimal?" (here + MyWave already proved it, so there is nothing more to find)":""}.`}/>
             {/* Active inspector content */}
             {selEmp&&proj&&<EmployeeInspector empId={selEmp} proj={proj} snap={snap} onClose={()=>{setSelEmp(null);}}/>}
@@ -1805,7 +1807,7 @@ export default function WorkforceSim(){
                 <div style={{fontFamily:MONO,fontSize:11,color:DS.i600,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:6}}>Problem Complexity</div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                   <span style={{fontFamily:SANS,fontSize:13,color:DS.z900,fontWeight:700}}>{complexity.complexity_label}</span>
-                  <span style={{fontFamily:MONO,fontSize:12,color:DS.z500,background:"rgba(255,255,255,0.7)",padding:"2px 7px",borderRadius:6,border:`1px solid ${DS.z200}`}}>~{complexity.estimated_seconds.toFixed(0)}s</span>
+                  <span style={{fontFamily:MONO,fontSize:12,color:DS.z500,background:"rgba(255,255,255,0.7)",padding:"2px 7px",borderRadius:6,border:`1px solid ${DS.z200}`}}>≤{deepLimitS(complexity.estimated_seconds)}s</span>
                 </div>
                 <div style={{height:3,background:"rgba(0,0,0,0.08)",borderRadius:2,overflow:"hidden",marginBottom:6}}>
                   <div style={{height:"100%",width:`${complexity.complexity_score}%`,background:`linear-gradient(90deg,${DS.t400},${DS.i500})`,borderRadius:2}}/>
@@ -1841,7 +1843,7 @@ export default function WorkforceSim(){
                 </div>
                 {complexity&&(
                   <div style={{fontFamily:MONO,fontSize:11,color:DS.z400,padding:"4px 8px",background:"rgba(238,242,255,0.6)",borderRadius:6}}>
-                    Est. solve time: ~{Math.round(complexity.estimated_seconds)}s · {complexity.complexity_label}
+                    Runs for up to {deepLimitS(complexity.estimated_seconds)}s · {complexity.complexity_label}
                   </div>
                 )}
               </div>
@@ -1959,7 +1961,7 @@ export default function WorkforceSim(){
                     background:"rgba(255,255,255,0.20)",
                     padding:"1px 6px",borderRadius:5,
                   }}>
-                    ~{Math.round(complexity.estimated_seconds)}s
+                    ≤{deepLimitS(complexity.estimated_seconds)}s
                   </span>
                 )}
               </span>
