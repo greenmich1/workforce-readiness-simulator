@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { siteById, presetFor } from "@/lib/sites";
+import { scopeMeasures, type Tier } from "@/lib/aiScope";
+import ScopePanel from "@/components/ScopePanel";
 
 // ─── Design System ────────────────────────────────────────────────────────────
 // Zinc × Electric Indigo × Teal — surgical Apple-level precision
@@ -997,6 +999,10 @@ export default function WorkforceSim(){
   const [zoom,     setZoom]     = useState(1);   // 0.5 | 1 | 1.5 | 2 | 3
   const [numTrainers, setNumTrainers] = useState<1|2>(1); // 1 or 2 rooms/trainers
   const [simNumTrainers, setSimNumTrainers] = useState<1|2>(1); // what was used when simulated
+  // AI scope (lib/aiScope.ts): the schedule each scope produced — SAP AI the rule-based plan, + MyWave the 30 s
+  // optimiser, + Gap-fill the deeper solve — kept so the dial can show any of them and the Value index compare them.
+  const [aiTier, setAiTier] = useState<Tier>("sap");
+  const [tierSnaps, setTierSnaps] = useState<Partial<Record<Tier,Snapshot>>>({});
   const cwZ = Math.round(CW * zoom);             // zoomed cell width
 
   useEffect(()=>{
@@ -1029,7 +1035,8 @@ export default function WorkforceSim(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[t0,t1,live,deepSolving]);
 
-  const today    = useMemo(()=>toIso(new Date()),[]);
+  // The SAP & AI family's one today (public/ops-family/family.js): every app runs Wednesday 14 October 2026.
+  const today    = useMemo(()=>"2026-10-14",[]);
 
   const [prof,setProf]=useState({
     employees:50, roles:10, courses:20, relationship_density:0.5,
@@ -1276,6 +1283,7 @@ export default function WorkforceSim(){
       // Enforce weekend restrictions client-side (backend doesn't yet model this)
       data.snapshot=filterWeekendPlacements(data.snapshot,prof.allow_saturday,prof.allow_sunday);
       setSim(data);
+      setTierSnaps({ sap: data.snapshot }); setAiTier("sap");
       setSimNumTrainers(numTrainers);
       // Fetch complexity estimate for this simulation
       try {
@@ -1309,6 +1317,7 @@ export default function WorkforceSim(){
       const data:Simulation=await res.json();
       data.snapshot=filterWeekendPlacements(data.snapshot,prof.allow_saturday,prof.allow_sunday);
       setSim(data);
+      setTierSnaps(s=>({ ...s, mywave: data.snapshot, gap: undefined })); setAiTier("mywave");
       setSolveMetadata(solveMetaOf(data.snapshot));
       const sc=data.snapshot?.metrics?.score??0;
       const co=data.snapshot?.metrics?.compression_percent??0;
@@ -1333,6 +1342,7 @@ export default function WorkforceSim(){
     const snapToCommit = lastStreamedSnapRef.current ?? sim?.snapshot ?? null;
     if(snapToCommit){
       setSim(s=>s?{...s,snapshot:snapToCommit}:s);
+      setTierSnaps(s=>({ ...s, gap: snapToCommit })); setAiTier("gap");
       setSolveMetadata(solveMetaOf(snapToCommit));
       setScoreH(h=>[...h.slice(-9),snapToCommit.metrics?.score??0]);
       setCompH(h=>[...h.slice(-9),snapToCommit.metrics?.compression_percent??0]);
@@ -1385,6 +1395,7 @@ export default function WorkforceSim(){
               const snap=filterWeekendPlacements(rawSnap,prof.allow_saturday,prof.allow_sunday);
               lastStreamedSnapRef.current = snap;
               setSim(s=>s?{...s,snapshot:snap}:s);
+              setTierSnaps(s=>({ ...s, gap: snap })); setAiTier("gap");
               setSolveMetadata(solveMetaOf(snap));
               setScoreH(h=>[...h.slice(-9),snap.metrics?.score??0]);
               setCompH(h=>[...h.slice(-9),snap.metrics?.compression_percent??0]);
@@ -1410,6 +1421,18 @@ export default function WorkforceSim(){
   const isOpt=snap?.phase==="optimized";
   const useTwoLanesUI=isOpt&&numTrainers===2;
   const isActive=["generating","solving"].includes(status)||deepSolving;
+  const measuresOf=(s?:Snapshot)=>s?scopeMeasures(s.placements,s.time_model.training_window_days,prof.max_classroom,simNumTrainers):undefined;
+  const fastOptimal=!!tierSnaps.mywave&&!!solveMetaOf(tierSnaps.mywave)?.is_optimal;
+  const tierRows:Partial<Record<Tier,Record<string,number>>>={ sap:measuresOf(tierSnaps.sap), mywave:measuresOf(tierSnaps.mywave), gap:measuresOf(tierSnaps.gap ?? (fastOptimal?tierSnaps.mywave:undefined)) };
+  const valueNow=(()=>{ const m=measuresOf(snap); if(!m) return null; const v=Object.values(m); return v.reduce((a,b)=>a+b,0)/v.length; })();
+  /** The dial: show that scope's schedule, running its solver when it has not run yet. */
+  const chooseTier=(t:Tier)=>{
+    if(isActive) return;
+    const have=t==="gap"&&!tierSnaps.gap&&fastOptimal?tierSnaps.mywave:tierSnaps[t];
+    if(have){ setSim(s=>s?{...s,snapshot:have}:s); setStatus(t==="sap"?"generated":"solved"); setAiTier(t); startAnim(); return; }
+    if(t==="mywave"||(t==="gap"&&!tierSnaps.mywave)){ solve(); return; }
+    if(t==="gap"){ setSim(s=>s&&tierSnaps.mywave?{...s,snapshot:tierSnaps.mywave}:s); deepSolve(); }
+  };
   const selData=selCell&&proj?(useTwoLanesUI?proj.roomGrids[selCell.room??0][selCell.day]?.[selCell.group]:proj.grid[selCell.day]?.[selCell.group]):null;
 
   const dayInfos=useMemo(()=>{
@@ -1495,6 +1518,10 @@ export default function WorkforceSim(){
 
           {/* ── RIGHT: Metric tiles ── */}
           <div className="es-kpis" style={{flex:1,display:"flex",gap:7,alignItems:"stretch",minWidth:0}}>
+            <MetricTile label="Value Index"
+              display={valueNow!=null?valueNow.toFixed(1):"—"} color={DS.i500} accent={DS.i400}
+              sub={{sap:"SAP AI · rule-based plan",mywave:"+ MyWave · optimised",gap:"+ Gap-fill · deeper solve"}[aiTier]}
+              tooltip="The SAP & AI family's Value index: training scheduled, no clashes, classes the right size and ready sooner, each as a percentage of its ideal, averaged. 100 means every measure at its ideal. Compare the scopes in AI scope, on the right."/>
             <MetricTile label="Solve Time"
               display={solveDisplay}
               unit={solveDisplay==="—"?undefined:"s"}
@@ -1712,6 +1739,9 @@ export default function WorkforceSim(){
             padding:10,overflowY:"auto",
             display:"flex",flexDirection:"column",gap:8,
           }}>
+            <ScopePanel tier={aiTier} onTier={chooseTier} rows={tierRows}
+              pending={{ mywave:"Optimise to run", gap: complexity?`Run, about ${Math.max(1,Math.round(complexity.estimated_seconds/60))} min`:"Run" }}
+              note={`The same workforce at each scope. SAP AI is the rule-based plan (each request booked where it first fits); + MyWave runs the CP-SAT optimiser for ${SOLVE_LIMIT_S} s; + Gap-fill keeps searching until the schedule is proven best${fastOptimal?" (here + MyWave already proved it, so there is nothing more to find)":""}.`}/>
             {/* Active inspector content */}
             {selEmp&&proj&&<EmployeeInspector empId={selEmp} proj={proj} snap={snap} onClose={()=>{setSelEmp(null);}}/>}
             {selCell&&selData&&proj&&!selEmp&&<CellInspector cell={selCell} data={selData} tm={snap.time_model} nodeMap={proj.nodeMap} onClose={()=>{setSelCell(null);setSelEmp(null);}} prof_max_classroom={prof.max_classroom} phase={snap.phase} room={selCell.room??0} numTrainers={numTrainers}/>}
