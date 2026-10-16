@@ -12,13 +12,14 @@
 
    import { TODAY, handoffURL, readHandoff, applied } from './ops-family/family.js'; */
 
-/** The apps, in the pipeline's order (Plan, Collect, Make, Inspect, Ship), Enterprise Scheduler always last. */
+/** The apps, in the pipeline's order (Plan, Collect, Make, Inspect, Ship, Trace), Enterprise Scheduler always last. */
 export const APPS = [
   { id: 'plan', name: 'Plan', stage: 'Plan', url: 'https://milk-plan.vercel.app/', what: 'Milk to market' },
   { id: 'collect', name: 'Collect', stage: 'Collect', url: 'https://milk-collect-nine.vercel.app/', what: 'Milk from farm to site' },
   { id: 'dairy-twin', name: 'Dairy Twin', stage: 'Make', url: 'https://dairy-twin.vercel.app/', what: 'The plant' },
   { id: 'seal-sentinel', name: 'Seal Sentinel', stage: 'Inspect', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
   { id: 'maritime', name: 'Maritime OS', stage: 'Ship', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
+  { id: 'trace', name: 'Trace', stage: 'Trace', url: 'https://milk-trace-nine.vercel.app/', what: 'Farm to market and back' },
   { id: 'scheduler', name: 'Enterprise Scheduler', stage: 'Enabler', url: 'https://workforce-readiness-simulator.vercel.app/', what: 'The people' },
 ];
 export const appOf = (id) => APPS.find((a) => a.id === id);

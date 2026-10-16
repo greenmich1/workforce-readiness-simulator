@@ -1,6 +1,6 @@
 # The SAP & AI family
 
-One design language for **Plan**, **Collect**, **Dairy Twin**, **Seal Sentinel**, **Maritime OS** and **Enterprise Scheduler**:
+One design language for **Plan**, **Collect**, **Dairy Twin**, **Seal Sentinel**, **Maritime OS**, **Trace** and **Enterprise Scheduler**:
 views of the same manufacturer-exporter (its season, its milk, its plant, its line cameras, its order book at sea,
 its people). Dairy Twin is the reference. Decided 2026-10-02; six apps since 2026-10-15.
 
@@ -14,7 +14,7 @@ Canonical files live in `greenwell/shared/ops-family/` and are copied into each 
 | `ai-scope.js` | The family's one AI scope control, the Dairy Twin's dial (`mountScope`), and the Value index card (`valueCard`, `valueIndex`) |
 | `family.js` | The apps (`APPS`), the one today (`TODAY`, `dayLabel`) and the hand-offs (`handoffURL`, `readHandoff`, `applied`) |
 | `fonts.html` | The one font link (Newsreader, Figtree, JetBrains Mono); Next.js uses `next/font` for the same three |
-| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the apps (Plan, Collect, Dairy Twin, Seal Sentinel, Maritime OS, then Enterprise Scheduler, always last), with "← SAP Autonomous Enterprise" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file). It also shows an arriving hand-off: a chip, "From Plan · …", and a card with the trail |
+| `ops-suite.js` | `<ops-suite current="…">`: the 40 px header linking the apps (Plan, Collect, Dairy Twin, Seal Sentinel, Maritime OS, Trace, then Enterprise Scheduler, always last), with "← SAP Autonomous Enterprise" back to the Greenwell room they hang off (`room="…"`, default `situation`; `ROOMS` in the file). It also shows an arriving hand-off: a chip, "From Plan · …", and a card with the trail |
 
 ## AI scope, in every app (owner, 2026-10-15)
 
@@ -80,6 +80,7 @@ shipment, an agent's schedule.
 |---|---|---|
 | Dairy Twin | `dairy-twin` | https://dairy-twin.vercel.app/ |
 | Maritime OS | `maritime-intel-os` (`frontend/`) | Vercel, from `main` |
+| Trace | `greenwell/trace` (own git repo) | https://milk-trace-nine.vercel.app/ (round 3 live 2026-10-16; in the tabs and on the rail; no AI scope dial yet: the owner kept it simple) |
 | Enterprise Scheduler | `workforce-readiness-simulator/v0.2-Claude` (`frontend/`; **public** repo) | https://workforce-readiness-simulator.vercel.app/ |
 | Collect | `greenwell/collect` (own git repo; header only) | https://milk-collect-nine.vercel.app/ (2026-10-09; tabs now in pipeline order) |
 | Seal Sentinel (Vision Room) | `greenwell/seal-sentinel` (own git repo; porcelain since 2026-10-13) | https://seal-sentinel.vercel.app/ (live 2026-10-04, in the Situation Room). Its tab is in every app's header (synced and redeployed 2026-10-04). An app marked `live: false` in `APPS` shows only on its own page |
