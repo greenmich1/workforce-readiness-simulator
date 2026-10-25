@@ -12,13 +12,17 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
         <link rel="stylesheet" href="/ops-family/family.css" />
+        {/* The phone version (greenwell/docs/MOBILE.md), on the scheduler only: the site picker at / already works on a
+            phone and scrolls, which the family kit's sheet would stop. Set before first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: "if(location.pathname.indexOf('/app')===0&&matchMedia('(max-width: 759px), (pointer: coarse) and (max-height: 500px)').matches)document.documentElement.classList.add('phone')" }} />
+        <link rel="stylesheet" href="/ops-family/phone.css" />
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script type="module" src="/ops-family/ops-suite.js" />
       </head>

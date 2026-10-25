@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { PhoneScheduler } from "../../components/PhoneScheduler";
 import { siteById, presetFor } from "@/lib/sites";
 import { scopeMeasures, type Tier } from "@/lib/aiScope";
 import ScopePanel from "@/components/ScopePanel";
@@ -967,6 +968,9 @@ function DockBtn({label,onClick,disabled,ghost,wide}:{label:React.ReactNode;onCl
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function WorkforceSim(){
+  // the phone version (components/PhoneScheduler.tsx; greenwell/docs/MOBILE.md), set in <head> by layout.tsx
+  const [phone,setPhone]=useState(false);
+  useEffect(()=>{ setPhone(document.documentElement.classList.contains("phone")); },[]);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const xAxisRef     = useRef<HTMLDivElement>(null);
@@ -1469,8 +1473,14 @@ export default function WorkforceSim(){
         </div>
       )}
 
+      {phone&&(
+        <PhoneScheduler site={siteName??"Blank workforce"} statusLabel={`${statusLabels[status]}${deepSolving?" · deeper solve":""}`} busy={isActive}
+          snap={snap??null} value={valueNow} readiness={m?.score??0} overflow={proj?.overflowCount??0}
+          tier={aiTier} onTier={chooseTier} onOptimise={solve}/>
+      )}
+
       {/* ── INTELLIGENCE HEADER ── */}
-      <header style={{
+      <header data-desk="" style={{
         flexShrink:0, position:"relative", zIndex:20,
         background:DS.glass,
         backdropFilter:"blur(18px) saturate(1.3)", WebkitBackdropFilter:"blur(18px) saturate(1.3)",
@@ -1571,7 +1581,7 @@ export default function WorkforceSim(){
       </header>
 
       {/* ── BODY ── */}
-      <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative",zIndex:1}}>
+      <div data-desk="" style={{flex:1,display:"flex",overflow:"hidden",position:"relative",zIndex:1}}>
 
         {/* ── TIMELINE CANVAS ── */}
         <main className="es-main" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,padding:"8px 10px 0 8px",position:"relative"}}>

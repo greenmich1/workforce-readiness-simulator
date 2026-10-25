@@ -32,6 +32,16 @@ Canonical files live in `greenwell/shared/ops-family/` and are copied into each 
 | Maritime OS | `frontend/src/domain/aiScope.ts` (core due-date check; Business Network Assistant; TF-025, TF-022, TF-024; Export Window) | value at risk with a decision, promises covered, risks with an owner, warning time, against the full watch |
 | Enterprise Scheduler | `frontend/lib/aiScope.ts` (Joule; MFG-004, XF-015; Readiness Planner) | training scheduled, no clashes, days away from the line, classes well filled |
 
+## On a phone: mobile first (owner, 2026-10-25)
+
+The phone version of each app is designed separately and cut to its hero functions; the computer version
+does not change. The rules, the frame and each app's design are in `greenwell/docs/MOBILE.md`.
+- Each app has one hero, full bleed, and one bottom sheet that peeks, then opens.
+- The scope shows as 3 chips with the Value index.
+- The sheet ends with "On a computer: …".
+- The kit: `phone.css` and `phone.js`, all under `html.phone` (`< 760 px`); the slim bar comes from
+  `ops-suite.js`.
+
 ## One today, and hand-offs (owner, 2026-10-15)
 
 - Every simulated app runs **Wednesday 14 October 2026** (`family.js` `TODAY`). Maritime OS stays on real time: its vessels are live.

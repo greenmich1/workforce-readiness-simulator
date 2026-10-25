@@ -155,3 +155,23 @@ ops-suite { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
 .animation-delay-400 {
   animation-delay: 0.4s;
 }
+
+/* ── The phone version (html.phone, /app only; components/PhoneScheduler.tsx, greenwell/docs/MOBILE.md) ──
+   The header, the week grid and the dock stand down; the agenda of the days is the hero and the family kit's sheet
+   carries the site, Optimise, the Value index, readiness and the AI scope. */
+html.phone [data-desk],html.phone .es-dock{display:none!important}
+html.phone .sp-agenda{position:fixed;left:0;right:0;top:var(--ph-bar);bottom:var(--ph-peek);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px 20px;z-index:2;display:flex;flex-direction:column;gap:14px}
+html.phone .sp-empty{margin:40px 8px;font-size:15px;color:var(--ink-3);text-align:center}
+html.phone .sp-day h3{margin:0 0 6px;display:flex;justify-content:space-between;align-items:baseline;font:600 17px/1.2 var(--display);color:var(--ink)}
+html.phone .sp-day h3 span{font:600 12px var(--sans);color:var(--ink-3)}
+html.phone .sp-day ol{margin:0;padding:0;list-style:none;border-radius:14px;background:var(--glass,rgba(255,255,255,.8));border:1px solid var(--line);overflow:hidden}
+html.phone .sp-day li{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;font-size:13.5px;border-top:1px solid var(--line)}
+html.phone .sp-day li:first-child{border-top:0}
+html.phone .sp-day li .t{font:500 12.5px var(--mono);color:var(--ink-2)}
+html.phone .sp-day li .c{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.phone .sp-day li .n{font:600 12.5px var(--mono);color:var(--blue);background:var(--blue-soft,#E3EEF8);border-radius:999px;padding:2px 8px}
+html.phone .sp-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+html.phone .sp-two>div{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+html.phone .sp-two b{font:600 24px var(--mono);color:var(--ink)}
+html.phone .sp-two span{font-size:13.5px;font-weight:700;color:var(--ink)}
+html.phone .sp-two small{font-size:12px;color:var(--ink-3)}
