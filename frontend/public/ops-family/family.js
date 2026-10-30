@@ -18,6 +18,7 @@ export const APPS = [
   { id: 'collect', name: 'Collect', stage: 'Collect', url: 'https://milk-collect-nine.vercel.app/', what: 'Milk from farm to site' },
   { id: 'dairy-twin', name: 'Dairy Twin', stage: 'Make', url: 'https://dairy-twin.vercel.app/', what: 'The plant' },
   { id: 'seal-sentinel', name: 'Seal Sentinel', stage: 'Inspect', url: 'https://seal-sentinel.vercel.app/', what: 'The line cameras' },
+  { id: 'asset-health', name: 'Asset Health', stage: 'Inspect', url: 'https://milk-asset-health.vercel.app/', what: 'The plant\'s health' },   // live 2026-10-30
   { id: 'sailings', name: 'Sailings', stage: 'Ship', url: 'https://milk-sailings.vercel.app/', what: 'Vessel recovery' },
   { id: 'maritime', name: 'Maritime OS', stage: 'Ship', url: 'https://maritime-intel-os.vercel.app/', what: 'The order book at sea' },
   { id: 'trace', name: 'Trace', stage: 'Trace', url: 'https://milk-trace-nine.vercel.app/', what: 'Farm to market and back' },
